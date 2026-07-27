@@ -59,11 +59,11 @@ This platform solves all three problems in one system, with government-backed ve
 
 The system enforces strict **Role-Based Access Control (RBAC)** with three primary roles, each with a distinct dashboard and permission set.
 
-| Role | Description | Primary Goal |
-|---|---|---|
-| **Startup Founder (Innovator)** | Creates and manages a startup profile, uploads Data Room documents, reviews and grants/revokes investor access requests | Get discovered, get verified, get funded |
-| **Investor (VC / Angel / ESO)** | Browses the verified startup directory, filters by sector/stage/location, requests Data Room access | Discover and evaluate legitimate investment opportunities |
-| **MinT Administrator** | Reviews and approves/rejects startup verification requests, monitors ecosystem-wide analytics | Maintain platform integrity, measure ecosystem health |
+| Role                            | Description                                                                                                             | Primary Goal                                              |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **Startup Founder (Innovator)** | Creates and manages a startup profile, uploads Data Room documents, reviews and grants/revokes investor access requests | Get discovered, get verified, get funded                  |
+| **Investor (VC / Angel / ESO)** | Browses the verified startup directory, filters by sector/stage/location, requests Data Room access                     | Discover and evaluate legitimate investment opportunities |
+| **MinT Administrator**          | Reviews and approves/rejects startup verification requests, monitors ecosystem-wide analytics                           | Maintain platform integrity, measure ecosystem health     |
 
 ## Core Modules & Features
 
@@ -105,24 +105,24 @@ This is the platform's signature module.
   - Distribution by funding stage and by location
   - Monthly Data Room access requests submitted vs. approved (deal-flow volume trend line)
   - Average time-to-verification (queue efficiency metric)
-- **Privacy-preserving telemetry**: MinT's analytics show aggregate counts and trends only — admins can see *that* 50 Data Room requests were approved this month, but not the private document contents or in-platform messages between founders and investors.
+- **Privacy-preserving telemetry**: MinT's analytics show aggregate counts and trends only — admins can see _that_ 50 Data Room requests were approved this month, but not the private document contents or in-platform messages between founders and investors.
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Frontend | **React** (Vite) | Single-page application, component-driven UI |
-| Frontend state | React Context + `useReducer` (or Redux Toolkit for larger team preference) | Auth state, role-based UI rendering |
-| Styling | Tailwind CSS | Utility-first styling, responsive design out of the box |
-| Charts | Recharts | Analytics dashboard visualizations |
-| Backend | **Express.js** (Node.js) | REST API server |
-| Database | **MongoDB** (Atlas) via **Mongoose** ODM | Document storage, schema validation |
-| Authentication | JSON Web Tokens (JWT) + bcrypt | Stateless auth, password hashing |
-| File Storage | Cloud object storage (e.g. AWS S3 / Cloudinary) with signed URLs | Secure Data Room document storage |
-| Email Notifications | Nodemailer + SMTP (or a transactional email API) | Access-request and verification-status notifications |
-| API Documentation | Swagger / OpenAPI | Machine-readable API contract for the endpoints listed below |
-| Testing | Jest + Supertest (backend), React Testing Library (frontend) | Unit and integration testing |
-| Deployment | Docker + a cloud host (e.g. Render, Railway, or a VPS) | Containerized deployment |
+| Layer               | Technology                                                                 | Purpose                                                      |
+| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Frontend            | **React** (Vite)                                                           | Single-page application, component-driven UI                 |
+| Frontend state      | React Context + `useReducer` (or Redux Toolkit for larger team preference) | Auth state, role-based UI rendering                          |
+| Styling             | Tailwind CSS                                                               | Utility-first styling, responsive design out of the box      |
+| Charts              | Recharts                                                                   | Analytics dashboard visualizations                           |
+| Backend             | **Express.js** (Node.js)                                                   | REST API server                                              |
+| Database            | **MongoDB** (Atlas) via **Mongoose** ODM                                   | Document storage, schema validation                          |
+| Authentication      | JSON Web Tokens (JWT) + bcrypt                                             | Stateless auth, password hashing                             |
+| File Storage        | Cloud object storage (e.g. AWS S3 / Cloudinary) with signed URLs           | Secure Data Room document storage                            |
+| Email Notifications | Nodemailer + SMTP (or a transactional email API)                           | Access-request and verification-status notifications         |
+| API Documentation   | Swagger / OpenAPI                                                          | Machine-readable API contract for the endpoints listed below |
+| Testing             | Jest + Supertest (backend), React Testing Library (frontend)               | Unit and integration testing                                 |
+| Deployment          | Docker + a cloud host (e.g. Render, Railway, or a VPS)                     | Containerized deployment                                     |
 
 ## System Architecture
 
@@ -162,93 +162,93 @@ All collections are managed through Mongoose schemas with server-side validation
 
 ### `User`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `fullName` | String | Required |
-| `email` | String | Required, unique, indexed |
-| `passwordHash` | String | bcrypt hash, never returned in API responses |
-| `role` | String enum | `founder`, `investor`, `admin` |
-| `isEmailVerified` | Boolean | Default `false` |
-| `createdAt` / `updatedAt` | Date | Timestamps (Mongoose `timestamps: true`) |
+| Field                     | Type        | Notes                                        |
+| ------------------------- | ----------- | -------------------------------------------- |
+| `_id`                     | ObjectId    | Primary key                                  |
+| `fullName`                | String      | Required                                     |
+| `email`                   | String      | Required, unique, indexed                    |
+| `passwordHash`            | String      | bcrypt hash, never returned in API responses |
+| `role`                    | String enum | `founder`, `investor`, `admin`               |
+| `isEmailVerified`         | Boolean     | Default `false`                              |
+| `createdAt` / `updatedAt` | Date        | Timestamps (Mongoose `timestamps: true`)     |
 
 ### `StartupProfile`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `founder` | ObjectId (ref `User`) | Required |
-| `companyName` | String | Required |
-| `logoUrl` | String | Optional at creation, required before submission |
-| `sector` | String enum | FinTech, AgriTech, EdTech, HealthTech, LogisticsTech, CleanTech, Other |
-| `fundingStage` | String enum | Idea, Pre-seed, Seed, Series A |
-| `location` | String enum | Addis Ababa, Bahir Dar, Hawassa, Mekelle, Adama, Regional IT Parks, Other |
-| `teamSize` | Number | Required |
-| `oneLineDescription` | String | Max 150 characters, shown on public card |
-| `problemStatement` | String | Required, private-until-verified detail field |
-| `solutionStatement` | String | Required |
-| `status` | String enum | `draft`, `pending`, `verified`, `rejected` |
-| `rejectionReason` | String | Populated only when `status === 'rejected'` |
-| `verifiedAt` | Date | Set when an admin approves |
-| `verifiedBy` | ObjectId (ref `User`) | Which admin approved it |
-| `createdAt` / `updatedAt` | Date | Timestamps |
+| Field                     | Type                  | Notes                                                                     |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------- |
+| `_id`                     | ObjectId              | Primary key                                                               |
+| `founder`                 | ObjectId (ref `User`) | Required                                                                  |
+| `companyName`             | String                | Required                                                                  |
+| `logoUrl`                 | String                | Optional at creation, required before submission                          |
+| `sector`                  | String enum           | FinTech, AgriTech, EdTech, HealthTech, LogisticsTech, CleanTech, Other    |
+| `fundingStage`            | String enum           | Idea, Pre-seed, Seed, Series A                                            |
+| `location`                | String enum           | Addis Ababa, Bahir Dar, Hawassa, Mekelle, Adama, Regional IT Parks, Other |
+| `teamSize`                | Number                | Required                                                                  |
+| `oneLineDescription`      | String                | Max 150 characters, shown on public card                                  |
+| `problemStatement`        | String                | Required, private-until-verified detail field                             |
+| `solutionStatement`       | String                | Required                                                                  |
+| `status`                  | String enum           | `draft`, `pending`, `verified`, `rejected`                                |
+| `rejectionReason`         | String                | Populated only when `status === 'rejected'`                               |
+| `verifiedAt`              | Date                  | Set when an admin approves                                                |
+| `verifiedBy`              | ObjectId (ref `User`) | Which admin approved it                                                   |
+| `createdAt` / `updatedAt` | Date                  | Timestamps                                                                |
 
 ### `DataRoomDocument`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `startup` | ObjectId (ref `StartupProfile`) | Required |
-| `documentType` | String enum | `pitch_deck`, `financials`, `business_registration`, `supplementary` |
-| `storageKey` | String | Object storage key/path, never exposed directly to the client |
-| `originalFileName` | String | Required |
-| `uploadedAt` | Date | Timestamp |
+| Field              | Type                            | Notes                                                                |
+| ------------------ | ------------------------------- | -------------------------------------------------------------------- |
+| `_id`              | ObjectId                        | Primary key                                                          |
+| `startup`          | ObjectId (ref `StartupProfile`) | Required                                                             |
+| `documentType`     | String enum                     | `pitch_deck`, `financials`, `business_registration`, `supplementary` |
+| `storageKey`       | String                          | Object storage key/path, never exposed directly to the client        |
+| `originalFileName` | String                          | Required                                                             |
+| `uploadedAt`       | Date                            | Timestamp                                                            |
 
 ### `InvestorProfile`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `user` | ObjectId (ref `User`) | Required, one-to-one |
-| `organizationName` | String | Required |
-| `organizationWebsite` | String | Required |
-| `investmentTicketSize` | String enum | `<$10k`, `$10k-$50k`, `$50k-$250k`, `$250k+` |
-| `focusAreas` | [String] | One or more sector enum values |
-| `kycStatus` | String enum | `incomplete`, `submitted`, `approved` |
-| `createdAt` / `updatedAt` | Date | Timestamps |
+| Field                     | Type                  | Notes                                        |
+| ------------------------- | --------------------- | -------------------------------------------- |
+| `_id`                     | ObjectId              | Primary key                                  |
+| `user`                    | ObjectId (ref `User`) | Required, one-to-one                         |
+| `organizationName`        | String                | Required                                     |
+| `organizationWebsite`     | String                | Required                                     |
+| `investmentTicketSize`    | String enum           | `<$10k`, `$10k-$50k`, `$50k-$250k`, `$250k+` |
+| `focusAreas`              | [String]              | One or more sector enum values               |
+| `kycStatus`               | String enum           | `incomplete`, `submitted`, `approved`        |
+| `createdAt` / `updatedAt` | Date                  | Timestamps                                   |
 
 ### `AccessRequest`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `startup` | ObjectId (ref `StartupProfile`) | Required |
-| `investor` | ObjectId (ref `User`) | Required |
-| `status` | String enum | `pending`, `approved`, `denied`, `revoked` |
-| `requestedAt` | Date | Timestamp |
-| `decidedAt` | Date | Set on approve/deny |
-| `revokedAt` | Date | Set if the founder later revokes an approved grant |
+| Field         | Type                            | Notes                                              |
+| ------------- | ------------------------------- | -------------------------------------------------- |
+| `_id`         | ObjectId                        | Primary key                                        |
+| `startup`     | ObjectId (ref `StartupProfile`) | Required                                           |
+| `investor`    | ObjectId (ref `User`)           | Required                                           |
+| `status`      | String enum                     | `pending`, `approved`, `denied`, `revoked`         |
+| `requestedAt` | Date                            | Timestamp                                          |
+| `decidedAt`   | Date                            | Set on approve/deny                                |
+| `revokedAt`   | Date                            | Set if the founder later revokes an approved grant |
 
 ### `AccessLog`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `accessRequest` | ObjectId (ref `AccessRequest`) | Required |
-| `action` | String enum | `requested`, `approved`, `denied`, `revoked`, `document_viewed` |
-| `actor` | ObjectId (ref `User`) | Who performed the action |
-| `timestamp` | Date | Required |
+| Field           | Type                           | Notes                                                           |
+| --------------- | ------------------------------ | --------------------------------------------------------------- |
+| `_id`           | ObjectId                       | Primary key                                                     |
+| `accessRequest` | ObjectId (ref `AccessRequest`) | Required                                                        |
+| `action`        | String enum                    | `requested`, `approved`, `denied`, `revoked`, `document_viewed` |
+| `actor`         | ObjectId (ref `User`)          | Who performed the action                                        |
+| `timestamp`     | Date                           | Required                                                        |
 
 ### `Notification`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | Primary key |
-| `recipient` | ObjectId (ref `User`) | Required |
-| `type` | String enum | `verification_approved`, `verification_rejected`, `access_requested`, `access_approved`, `access_denied`, `access_revoked` |
-| `message` | String | Human-readable notification text |
-| `isRead` | Boolean | Default `false` |
-| `createdAt` | Date | Timestamp |
+| Field       | Type                  | Notes                                                                                                                      |
+| ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `_id`       | ObjectId              | Primary key                                                                                                                |
+| `recipient` | ObjectId (ref `User`) | Required                                                                                                                   |
+| `type`      | String enum           | `verification_approved`, `verification_rejected`, `access_requested`, `access_approved`, `access_denied`, `access_revoked` |
+| `message`   | String                | Human-readable notification text                                                                                           |
+| `isRead`    | Boolean               | Default `false`                                                                                                            |
+| `createdAt` | Date                  | Timestamp                                                                                                                  |
 
 ## API Reference
 
@@ -258,69 +258,69 @@ All protected routes require `Authorization: Bearer <JWT>`. Role-restricted rout
 
 ### Auth
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/auth/register` | Public | Register a new user with `role: founder \| investor` |
-| POST | `/auth/login` | Public | Authenticate and receive access + refresh tokens |
-| POST | `/auth/refresh` | Public (valid refresh token) | Issue a new access token |
-| POST | `/auth/logout` | Authenticated | Invalidate the current refresh token |
+| Method | Endpoint         | Access                       | Description                                          |
+| ------ | ---------------- | ---------------------------- | ---------------------------------------------------- |
+| POST   | `/auth/register` | Public                       | Register a new user with `role: founder \| investor` |
+| POST   | `/auth/login`    | Public                       | Authenticate and receive access + refresh tokens     |
+| POST   | `/auth/refresh`  | Public (valid refresh token) | Issue a new access token                             |
+| POST   | `/auth/logout`   | Authenticated                | Invalidate the current refresh token                 |
 
 ### Startups
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/startups` | Founder | Create a startup profile (status: `draft`) |
-| PUT | `/startups/:id` | Founder (owner) | Update own startup profile |
-| POST | `/startups/:id/submit` | Founder (owner) | Submit profile for verification (status → `pending`) |
-| GET | `/startups` | Public | List verified startups, supports `?sector=`, `?stage=`, `?location=`, `?page=` |
-| GET | `/startups/:id` | Public | Public view of a single verified startup |
-| GET | `/startups/:id/full` | Founder (owner) or approved Investor | Full profile including private fields |
+| Method | Endpoint               | Access                               | Description                                                                    |
+| ------ | ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| POST   | `/startups`            | Founder                              | Create a startup profile (status: `draft`)                                     |
+| PUT    | `/startups/:id`        | Founder (owner)                      | Update own startup profile                                                     |
+| POST   | `/startups/:id/submit` | Founder (owner)                      | Submit profile for verification (status → `pending`)                           |
+| GET    | `/startups`            | Public                               | List verified startups, supports `?sector=`, `?stage=`, `?location=`, `?page=` |
+| GET    | `/startups/:id`        | Public                               | Public view of a single verified startup                                       |
+| GET    | `/startups/:id/full`   | Founder (owner) or approved Investor | Full profile including private fields                                          |
 
 ### Data Room
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/startups/:id/documents` | Founder (owner) | Upload a Data Room document |
-| DELETE | `/documents/:docId` | Founder (owner) | Remove a document |
-| GET | `/documents/:docId/signed-url` | Investor with `approved` access only | Returns a short-lived signed URL |
+| Method | Endpoint                       | Access                               | Description                      |
+| ------ | ------------------------------ | ------------------------------------ | -------------------------------- |
+| POST   | `/startups/:id/documents`      | Founder (owner)                      | Upload a Data Room document      |
+| DELETE | `/documents/:docId`            | Founder (owner)                      | Remove a document                |
+| GET    | `/documents/:docId/signed-url` | Investor with `approved` access only | Returns a short-lived signed URL |
 
 ### Access Requests
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/startups/:id/access-requests` | Investor (KYC `approved`) | Request Data Room access |
-| GET | `/access-requests/incoming` | Founder | List requests for the founder's startup |
-| GET | `/access-requests/outgoing` | Investor | List the investor's own requests |
-| PATCH | `/access-requests/:id/approve` | Founder (owner) | Approve a pending request |
-| PATCH | `/access-requests/:id/deny` | Founder (owner) | Deny a pending request |
-| PATCH | `/access-requests/:id/revoke` | Founder (owner) | Revoke a previously approved request |
+| Method | Endpoint                        | Access                    | Description                             |
+| ------ | ------------------------------- | ------------------------- | --------------------------------------- |
+| POST   | `/startups/:id/access-requests` | Investor (KYC `approved`) | Request Data Room access                |
+| GET    | `/access-requests/incoming`     | Founder                   | List requests for the founder's startup |
+| GET    | `/access-requests/outgoing`     | Investor                  | List the investor's own requests        |
+| PATCH  | `/access-requests/:id/approve`  | Founder (owner)           | Approve a pending request               |
+| PATCH  | `/access-requests/:id/deny`     | Founder (owner)           | Deny a pending request                  |
+| PATCH  | `/access-requests/:id/revoke`   | Founder (owner)           | Revoke a previously approved request    |
 
 ### Investor KYC
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/investors/kyc` | Investor | Submit KYC details |
-| GET | `/investors/me` | Investor | Get own investor profile |
+| Method | Endpoint         | Access   | Description              |
+| ------ | ---------------- | -------- | ------------------------ |
+| POST   | `/investors/kyc` | Investor | Submit KYC details       |
+| GET    | `/investors/me`  | Investor | Get own investor profile |
 
 ### Admin / MinT
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/admin/verification-queue` | Admin | List `pending` startup profiles, oldest-first |
-| PATCH | `/admin/startups/:id/approve` | Admin | Approve a startup (status → `verified`) |
-| PATCH | `/admin/startups/:id/reject` | Admin | Reject a startup, requires `reason` in body |
-| GET | `/admin/analytics/overview` | Admin | Aggregate counts: registered/verified/rejected totals |
-| GET | `/admin/analytics/sector-distribution` | Admin | Verified startup count grouped by sector |
-| GET | `/admin/analytics/stage-distribution` | Admin | Verified startup count grouped by funding stage |
-| GET | `/admin/analytics/deal-flow` | Admin | Monthly access-request submitted vs. approved trend |
-| GET | `/admin/analytics/verification-time` | Admin | Average time from `pending` to `verified` |
+| Method | Endpoint                               | Access | Description                                           |
+| ------ | -------------------------------------- | ------ | ----------------------------------------------------- |
+| GET    | `/admin/verification-queue`            | Admin  | List `pending` startup profiles, oldest-first         |
+| PATCH  | `/admin/startups/:id/approve`          | Admin  | Approve a startup (status → `verified`)               |
+| PATCH  | `/admin/startups/:id/reject`           | Admin  | Reject a startup, requires `reason` in body           |
+| GET    | `/admin/analytics/overview`            | Admin  | Aggregate counts: registered/verified/rejected totals |
+| GET    | `/admin/analytics/sector-distribution` | Admin  | Verified startup count grouped by sector              |
+| GET    | `/admin/analytics/stage-distribution`  | Admin  | Verified startup count grouped by funding stage       |
+| GET    | `/admin/analytics/deal-flow`           | Admin  | Monthly access-request submitted vs. approved trend   |
+| GET    | `/admin/analytics/verification-time`   | Admin  | Average time from `pending` to `verified`             |
 
 ### Notifications
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/notifications` | Authenticated | List the current user's notifications |
-| PATCH | `/notifications/:id/read` | Authenticated | Mark a notification as read |
+| Method | Endpoint                  | Access        | Description                           |
+| ------ | ------------------------- | ------------- | ------------------------------------- |
+| GET    | `/notifications`          | Authenticated | List the current user's notifications |
+| PATCH  | `/notifications/:id/read` | Authenticated | Mark a notification as read           |
 
 ## User Flows
 
@@ -461,24 +461,28 @@ CLIENT_URL=http://localhost:5173
 ### Steps
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/<your-org>/digital-innovation-hub-mint.git
    cd digital-innovation-hub-mint
    ```
 
 2. Install backend dependencies:
+
    ```
    cd server
    npm install
    ```
 
 3. Install frontend dependencies:
+
    ```
    cd ../client
    npm install
    ```
 
 4. Copy the environment template and fill in real values:
+
    ```
    cd ../server
    cp .env.example .env
@@ -494,20 +498,25 @@ CLIENT_URL=http://localhost:5173
 Run backend and frontend in separate terminals during development.
 
 **Backend:**
+
 ```
 cd server
 npm run dev
 ```
+
 The API will be available at `http://localhost:5000/api/v1`.
 
 **Frontend:**
+
 ```
 cd client
 npm run dev
 ```
+
 The app will be available at `http://localhost:5173`.
 
 **Using Docker Compose (runs both services + MongoDB together):**
+
 ```
 docker-compose up --build
 ```
@@ -520,12 +529,14 @@ docker-compose up --build
 - **Manual QA checklist**: covers the two full user flows documented above (Startup Verification Journey, Investor Deal-Flow Journey) before each release.
 
 Run all backend tests:
+
 ```
 cd server
 npm test
 ```
 
 Run all frontend tests:
+
 ```
 cd client
 npm test
@@ -546,6 +557,7 @@ npm test
 **Phase 1 (this internship deliverable):** Modules A–D as specified above — identity/onboarding, public directory, Data Room deal-flow, and MinT verification/analytics.
 
 **Phase 2 (future extension, out of scope for this delivery):**
+
 - In-platform messaging between founders and investors after an access grant
 - Multilingual AI assistant to guide new users to the right MinT program
 - Innovation competition submission and judging workflow
