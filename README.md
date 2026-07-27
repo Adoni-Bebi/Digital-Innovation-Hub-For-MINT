@@ -566,7 +566,7 @@ npm test
 
 ## Team
 
-This project is developed by a student team as part of an internship at the Ministry of Innovation and Technology (MinT),Ethiopia.
+This project is developed by a student team as part of an internship at the Ministry of Innovation and Technology (MinT), Ethiopia.
 
 ## License
 
