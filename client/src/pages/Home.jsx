@@ -1,15 +1,39 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Shield, BadgeCheck, ArrowRight, Building2, Users, Zap
+  Shield, BadgeCheck, ArrowRight, Building2, Users, Zap, Loader2
 } from "lucide-react";
-import { mockStartups } from "../data/mockData";
+import { apiRequest } from "../utils/api";
 import StartupCard from "../components/StartupCard";
 
 export default function Home() {
-  const featured = mockStartups.slice(0, 3);
+  const [featured, setFeatured] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [startupsRes, statsRes] = await Promise.all([
+          apiRequest("/startups"),
+          apiRequest("/startups/public-stats"),
+        ]);
+        setFeatured((startupsRes.data || []).slice(0, 3));
+        setStats(statsRes.data);
+      } catch (err) {
+        console.error("Failed to load home data:", err);
+        setFeatured([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div>
+      {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
           <div className="max-w-3xl">
@@ -41,14 +65,30 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Real Stats */}
           <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: "Verified Startups", value: "89+" },
-              { label: "Active Investors", value: "47" },
-              { label: "Access Requests", value: "680+" },
-              { label: "Sectors Covered", value: "7" },
+              {
+                label: "Verified Startups",
+                value: stats ? `${stats.verifiedStartups}` : "—",
+              },
+              {
+                label: "Active Investors",
+                value: stats ? `${stats.totalInvestors}` : "—",
+              },
+              {
+                label: "Total Startups",
+                value: stats ? `${stats.totalStartups}` : "—",
+              },
+              {
+                label: "Sectors Covered",
+                value: stats ? `${stats.sectorsCovered}` : "7",
+              },
             ].map((s) => (
-              <div key={s.label} className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 text-center">
+              <div
+                key={s.label}
+                className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 text-center"
+              >
                 <div className="text-2xl font-bold text-white">{s.value}</div>
                 <div className="text-xs text-slate-400 mt-1">{s.label}</div>
               </div>
@@ -57,6 +97,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How it works */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
@@ -65,7 +106,6 @@ export default function Home() {
               Three roles. One trusted system. Government verification as the trust anchor.
             </p>
           </div>
-
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
@@ -87,7 +127,10 @@ export default function Home() {
                 color: "bg-amber-50 text-amber-600",
               },
             ].map((item) => (
-              <div key={item.title} className="relative bg-slate-50 rounded-2xl p-7 border border-slate-100 hover:border-primary-200 hover:shadow-md transition-all">
+              <div
+                key={item.title}
+                className="relative bg-slate-50 rounded-2xl p-7 border border-slate-100 hover:border-primary-200 hover:shadow-md transition-all"
+              >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${item.color}`}>
                   <item.icon size={24} />
                 </div>
@@ -99,6 +142,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Secure Data Room section */}
       <section className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -106,9 +150,7 @@ export default function Home() {
               <div className="inline-flex items-center gap-2 text-primary-700 text-sm font-semibold mb-4">
                 <Zap size={16} /> Signature Module
               </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                Secure Data Room
-              </h2>
+              <h2 className="text-3xl font-bold text-slate-900 mb-4">Secure Data Room</h2>
               <p className="text-slate-600 leading-relaxed mb-6">
                 Startups show a public summary to everyone, while pitch decks, financials, and legal documents stay locked behind an explicit, founder-approved, revocable access grant. Every view is logged for audit.
               </p>
@@ -128,25 +170,35 @@ export default function Home() {
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <span className="text-sm font-semibold text-slate-800">Data Room — AgriLink Ethiopia</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Access Granted</span>
+                <span className="text-sm font-semibold text-slate-800">Data Room — Example Startup</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">
+                  Access Granted
+                </span>
               </div>
-              {["Pitch Deck.pdf", "Financial Projections.xlsx", "Business Registration.pdf", "Team Bios.pdf"].map((doc) => (
-                <div key={doc} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 text-xs font-bold">
-                      {doc.split(".").pop().toUpperCase()}
+              {["Pitch Deck.pdf", "Financial Projections.xlsx", "Business Registration.pdf", "Team Bios.pdf"].map(
+                (doc) => (
+                  <div
+                    key={doc}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 text-xs font-bold">
+                        {doc.split(".").pop().toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-slate-700">{doc}</span>
                     </div>
-                    <span className="text-sm font-medium text-slate-700">{doc}</span>
+                    <button className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                      View
+                    </button>
                   </div>
-                  <button className="text-xs font-medium text-primary-600 hover:text-primary-700">View</button>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         </div>
       </section>
 
+      {/* Featured Startups - Real Data */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
@@ -161,14 +213,32 @@ export default function Home() {
               View all <ArrowRight size={16} />
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featured.map((s) => (
-              <StartupCard key={s.id} startup={s} />
-            ))}
-          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            </div>
+          ) : featured.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.map((s) => (
+                <StartupCard key={s._id} startup={s} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-slate-500 mb-4">No verified startups yet.</p>
+              <Link
+                to="/register"
+                className="text-primary-600 font-medium text-sm hover:underline"
+              >
+                Be the first to register →
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
+      {/* CTA */}
       <section className="py-16 bg-gradient-to-r from-primary-700 to-primary-900 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to join Ethiopia's innovation ecosystem?</h2>

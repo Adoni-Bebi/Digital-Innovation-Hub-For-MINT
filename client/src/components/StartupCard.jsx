@@ -12,16 +12,19 @@ const sectorColors = {
 };
 
 export default function StartupCard({ startup }) {
+  // Support both mock (id) and real backend (_id)
+  const id = startup._id || startup.id;
+
   return (
     <Link
-      to={`/directory/${startup.id}`}
+      to={`/directory/${id}`}
       className="group block bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-primary-200 transition-all duration-300 overflow-hidden"
     >
       <div className="p-6">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">
-              {startup.logo}
+              {startup.logo || "🚀"}
             </div>
             <div>
               <h3 className="font-semibold text-slate-900 group-hover:text-primary-700 transition-colors leading-tight">
@@ -33,7 +36,10 @@ export default function StartupCard({ startup }) {
               </div>
             </div>
           </div>
-          <ArrowUpRight size={18} className="text-slate-300 group-hover:text-primary-500 transition-colors shrink-0" />
+          <ArrowUpRight
+            size={18}
+            className="text-slate-300 group-hover:text-primary-500 transition-colors shrink-0"
+          />
         </div>
 
         <p className="text-sm text-slate-600 leading-relaxed mb-4 line-clamp-2">
@@ -41,7 +47,11 @@ export default function StartupCard({ startup }) {
         </p>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${sectorColors[startup.sector] || sectorColors.Other}`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+              sectorColors[startup.sector] || sectorColors.Other
+            }`}
+          >
             {startup.sector}
           </span>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">

@@ -10,6 +10,7 @@ import StartupDetail from "./pages/directory/StartupDetail";
 import FounderDashboard from "./pages/founder/FounderDashboard";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import CreateStartup from "./pages/founder/CreateStartup";
 
 // ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
@@ -116,6 +117,14 @@ function AppLayout() {
               <ProtectedRoute roles={["admin"]}>
                 <AdminDashboard />
               </ProtectedRoute>
+            }
+          />
+          <Route
+           path="/founder/create"
+          element={
+            <ProtectedRoute roles={["founder"]}>
+              <CreateStartup />
+            </ProtectedRoute>
             }
           />
 

@@ -1,17 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const startupRoutes = require('./routes/startupRoutes');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/startups', startupRoutes);
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'Digital Innovation Hub API is running' });
 });
