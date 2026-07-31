@@ -1,16 +1,15 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  Menu, X, LogOut, LayoutDashboard, ChevronDown
+  Menu, X, LogOut, LayoutDashboard
 } from "lucide-react";
 import { useState } from "react";
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated, switchDemoRole } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -27,7 +26,9 @@ export default function Navbar() {
   };
 
   const navLink = (to, label) => {
-    const active = location.pathname === to || location.pathname.startsWith(to + "/");
+    const active =
+      location.pathname === to || location.pathname.startsWith(to + "/");
+
     return (
       <Link
         to={to}
@@ -47,16 +48,22 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
               <span className="text-white font-bold text-sm">DIH</span>
             </div>
             <div className="hidden sm:block">
-              <div className="text-sm font-bold text-slate-900 leading-tight">Digital Innovation Hub</div>
-              <div className="text-[11px] text-slate-500 leading-tight">Ministry of Innovation & Technology</div>
+              <div className="text-sm font-bold text-slate-900 leading-tight">
+                Digital Innovation Hub
+              </div>
+              <div className="text-[11px] text-slate-500 leading-tight">
+                Ministry of Innovation & Technology
+              </div>
             </div>
           </Link>
 
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navLink("/", "Home")}
             {navLink("/directory", "Startup Directory")}
@@ -65,39 +72,17 @@ export default function Navbar() {
             {isAuthenticated && user?.role === "admin" && navLink("/admin", "Admin Panel")}
           </nav>
 
+          {/* Desktop Auth Section */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="relative">
-              <button
-                onClick={() => setDemoOpen(!demoOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
-              >
-                Demo Role
-                <ChevronDown size={14} />
-              </button>
-              {demoOpen && (
-                <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
-                  {["founder", "investor", "admin"].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => {
-                        switchDemoRole(r);
-                        setDemoOpen(false);
-                        navigate(r === "founder" ? "/founder" : r === "investor" ? "/investor" : "/admin");
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 capitalize"
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="text-sm font-medium text-slate-900">{user.fullName}</div>
-                  <div className="text-xs text-slate-500 capitalize">{user.role}</div>
+                  <div className="text-sm font-medium text-slate-900">
+                    {user.fullName}
+                  </div>
+                  <div className="text-xs text-slate-500 capitalize">
+                    {user.role}
+                  </div>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -125,6 +110,7 @@ export default function Navbar() {
             )}
           </div>
 
+          {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 text-slate-600"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -134,10 +120,12 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-1">
           {navLink("/", "Home")}
           {navLink("/directory", "Startup Directory")}
+
           {isAuthenticated && (
             <Link
               to={dashboardLink()}
@@ -147,6 +135,7 @@ export default function Navbar() {
               <LayoutDashboard size={16} /> Dashboard
             </Link>
           )}
+
           <div className="pt-3 border-t border-slate-100 mt-2">
             {isAuthenticated ? (
               <button
@@ -157,7 +146,11 @@ export default function Navbar() {
               </button>
             ) : (
               <div className="flex flex-col gap-2">
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="px-3 py-2 text-sm font-medium">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="px-3 py-2 text-sm font-medium"
+                >
                   Sign in
                 </Link>
                 <Link

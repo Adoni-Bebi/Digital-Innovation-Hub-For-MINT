@@ -11,8 +11,11 @@ import FounderDashboard from "./pages/founder/FounderDashboard";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
+// ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
   const { user, loading, isAuthenticated } = useAuth();
+
+  // Show loading spinner while checking auth
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -20,23 +23,77 @@ function ProtectedRoute({ children, roles }) {
       </div>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+
+  // Not logged in → redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Logged in but wrong role → redirect to their own dashboard
+  if (roles && !roles.includes(user.role)) {
+    if (user.role === "founder") return <Navigate to="/founder" replace />;
+    if (user.role === "investor") return <Navigate to="/investor" replace />;
+    if (user.role === "admin") return <Navigate to="/admin" replace />;
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 }
 
+// ====================== PUBLIC ONLY ROUTE ======================
+// Prevents logged-in users from visiting Login / Register
+function PublicOnlyRoute({ children }) {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    if (user.role === "founder") return <Navigate to="/founder" replace />;
+    if (user.role === "investor") return <Navigate to="/investor" replace />;
+    if (user.role === "admin") return <Navigate to="/admin" replace />;
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+// ====================== APP LAYOUT ======================
 function AppLayout() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/directory" element={<Directory />} />
           <Route path="/directory/:id" element={<StartupDetail />} />
 
+          {/* Auth Routes (only for guests) */}
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <Register />
+              </PublicOnlyRoute>
+            }
+          />
+
+          {/* Protected Routes */}
           <Route
             path="/founder"
             element={
@@ -62,6 +119,7 @@ function AppLayout() {
             }
           />
 
+          {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

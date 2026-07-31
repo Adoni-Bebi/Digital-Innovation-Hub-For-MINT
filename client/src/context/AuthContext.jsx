@@ -2,83 +2,93 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
-const DEMO_USERS = {
-  founder: {
-    id: "u1",
-    fullName: "Abebe Kebede",
-    email: "abebe@agrilink.et",
-    role: "founder",
-    companyName: "AgriLink Ethiopia",
-  },
-  investor: {
-    id: "u2",
-    fullName: "Sarah Johnson",
-    email: "sarah@eastafricavc.com",
-    role: "investor",
-    organization: "East Africa Ventures",
-  },
-  admin: {
-    id: "u3",
-    fullName: "MinT Administrator",
-    email: "admin@mint.gov.et",
-    role: "admin",
-  },
-};
+const API_URL = "http://localhost:5000/api/auth";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load user from localStorage on refresh
   useEffect(() => {
-    const saved = localStorage.getItem("dih_user");
-    if (saved) {
+    const savedUser = localStorage.getItem("dih_user");
+    const savedToken = localStorage.getItem("dih_token");
+
+    if (savedUser && savedToken) {
       try {
-        setUser(JSON.parse(saved));
+        setUser(JSON.parse(savedUser));
+        setToken(savedToken);
       } catch {
         localStorage.removeItem("dih_user");
+        localStorage.removeItem("dih_token");
       }
     }
     setLoading(false);
   }, []);
 
-  const login = (email, password, role) => {
-    const demoUser = DEMO_USERS[role] || {
-      id: "u" + Date.now(),
-      fullName: email.split("@")[0],
-      email,
-      role,
-    };
-    setUser(demoUser);
-    localStorage.setItem("dih_user", JSON.stringify(demoUser));
-    return demoUser;
+  // ====================== LOGIN ======================
+  const login = async (email, password) => {
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem("dih_user", JSON.stringify(data.user));
+    localStorage.setItem("dih_token", data.token);
+
+    return data.user;
   };
 
-  const register = (fullName, email, password, role) => {
-    const newUser = {
-      id: "u" + Date.now(),
-      fullName,
-      email,
-      role,
-    };
-    setUser(newUser);
-    localStorage.setItem("dih_user", JSON.stringify(newUser));
-    return newUser;
+  // ====================== REGISTER ======================
+  const register = async (fullName, email, password, role) => {
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName, email, password, role }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Registration failed");
+    }
+
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem("dih_user", JSON.stringify(data.user));
+    localStorage.setItem("dih_token", data.token);
+
+    return data.user;
   };
 
+  // ====================== LOGOUT ======================
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem("dih_user");
-  };
-
-  const switchDemoRole = (role) => {
-    const demoUser = DEMO_USERS[role];
-    setUser(demoUser);
-    localStorage.setItem("dih_user", JSON.stringify(demoUser));
+    localStorage.removeItem("dih_token");
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, switchDemoRole, isAuthenticated: !!user }}
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!user,
+      }}
     >
       {children}
     </AuthContext.Provider>
