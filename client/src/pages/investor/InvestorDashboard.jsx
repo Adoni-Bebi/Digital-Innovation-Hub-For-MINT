@@ -8,7 +8,7 @@ import { Search, Send, CheckCircle, Clock, Loader2, Pencil } from "lucide-react"
 import { SECTORS } from "../../data/mockData";
 
 export default function InvestorDashboard() {
-  const { user, login } = useAuth(); // we'll refresh user after profile update
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export default function InvestorDashboard() {
 
   const [profileForm, setProfileForm] = useState({
     organization: "",
-    ticketSize: "",
+    investmentRange: "",
     focus: [],
   });
 
@@ -26,7 +26,7 @@ export default function InvestorDashboard() {
     if (user) {
       setProfileForm({
         organization: user.organization || "",
-        ticketSize: user.ticketSize || "",
+        investmentRange: user.investmentRange || "",
         focus: user.focus || [],
       });
     }
@@ -73,12 +73,10 @@ export default function InvestorDashboard() {
         body: profileForm,
       });
 
-      // Update localStorage so AuthContext stays in sync
       const savedUser = JSON.parse(localStorage.getItem("dih_user") || "{}");
       const updatedUser = { ...savedUser, ...res.user };
       localStorage.setItem("dih_user", JSON.stringify(updatedUser));
 
-      // Force page refresh of user data (simple way)
       window.location.reload();
     } catch (err) {
       setProfileError(err.message);
@@ -115,7 +113,6 @@ export default function InvestorDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* My Access Requests */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">My Access Requests</h2>
@@ -128,10 +125,7 @@ export default function InvestorDashboard() {
             {requests.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-sm text-slate-500 mb-3">No access requests yet.</p>
-                <Link
-                  to="/directory"
-                  className="text-sm font-medium text-primary-600 hover:underline"
-                >
+                <Link to="/directory" className="text-sm font-medium text-primary-600 hover:underline">
                   Browse startups →
                 </Link>
               </div>
@@ -163,7 +157,6 @@ export default function InvestorDashboard() {
           </div>
         </div>
 
-        {/* Profile Card */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -185,9 +178,9 @@ export default function InvestorDashboard() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500">Ticket size:</span>{" "}
+                  <span className="text-slate-500">Investment range:</span>{" "}
                   <span className="font-medium text-slate-800">
-                    {user?.ticketSize || "Not set"}
+                    {user?.investmentRange || "Not set"}
                   </span>
                 </div>
                 <div>
@@ -215,12 +208,12 @@ export default function InvestorDashboard() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Ticket Size
+                    Investment Range
                   </label>
                   <select
-                    value={profileForm.ticketSize}
+                    value={profileForm.investmentRange}
                     onChange={(e) =>
-                      setProfileForm({ ...profileForm, ticketSize: e.target.value })
+                      setProfileForm({ ...profileForm, investmentRange: e.target.value })
                     }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
@@ -287,7 +280,6 @@ export default function InvestorDashboard() {
         </div>
       </div>
 
-      {/* Recommended */}
       {recommended.length > 0 && (
         <div className="mt-10">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Recommended for you</h2>

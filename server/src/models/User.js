@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    ticketSize: {
+    investmentRange: {
       type: String,
       trim: true,
     },

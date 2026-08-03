@@ -87,7 +87,7 @@ exports.getIncomingRequests = async (req, res) => {
     }
 
     const requests = await AccessRequest.find({ startup: startup._id })
-      .populate('investor', 'fullName email organization ticketSize focus')
+      .populate('investor', 'fullName email organization investmentRange focus')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

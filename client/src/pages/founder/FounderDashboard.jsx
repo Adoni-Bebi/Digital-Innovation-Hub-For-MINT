@@ -68,7 +68,6 @@ export default function FounderDashboard() {
     );
   }
 
-  // No startup yet
   if (!startup) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
@@ -126,7 +125,6 @@ export default function FounderDashboard() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Incoming Access Requests */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">Incoming Access Requests</h2>
@@ -144,7 +142,6 @@ export default function FounderDashboard() {
               requests.map((req) => (
                 <div key={req._id} className="px-6 py-5">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                    {/* Investor Info */}
                     <div className="flex-1 space-y-1.5">
                       <div className="font-semibold text-slate-900 text-sm">
                         {req.investor?.fullName || "Investor"}
@@ -156,8 +153,8 @@ export default function FounderDashboard() {
                           {req.investor?.organization || "—"}
                         </div>
                         <div>
-                          <span className="text-slate-400">Ticket size:</span>{" "}
-                          {req.investor?.ticketSize || "—"}
+                          <span className="text-slate-400">Investment range:</span>{" "}
+                          {req.investor?.investmentRange || "—"}
                         </div>
                         <div>
                           <span className="text-slate-400">Focus:</span>{" "}
@@ -171,7 +168,6 @@ export default function FounderDashboard() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
                       {req.status === "pending" ? (
                         <>
@@ -210,7 +206,6 @@ export default function FounderDashboard() {
           </div>
         </div>
 
-        {/* Side panel */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-4">

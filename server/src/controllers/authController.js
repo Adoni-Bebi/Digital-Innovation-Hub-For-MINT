@@ -100,7 +100,7 @@ exports.login = async (req, res) => {
         role: user.role,
         companyName: user.companyName,
         organization: user.organization,
-        ticketSize: user.ticketSize,
+        investmentRange: user.investmentRange,
         focus: user.focus,
       },
     });
@@ -116,7 +116,7 @@ exports.login = async (req, res) => {
 // ====================== UPDATE PROFILE ======================
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, organization, ticketSize, focus } = req.body;
+    const { fullName, organization, investmentRange, focus } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -125,7 +125,7 @@ exports.updateProfile = async (req, res) => {
 
     if (fullName) user.fullName = fullName;
     if (organization !== undefined) user.organization = organization;
-    if (ticketSize !== undefined) user.ticketSize = ticketSize;
+    if (investmentRange !== undefined) user.investmentRange = investmentRange;
     if (focus !== undefined) user.focus = focus;
 
     await user.save();
@@ -139,7 +139,7 @@ exports.updateProfile = async (req, res) => {
         email: user.email,
         role: user.role,
         organization: user.organization,
-        ticketSize: user.ticketSize,
+        investmentRange: user.investmentRange,
         focus: user.focus,
       },
     });
