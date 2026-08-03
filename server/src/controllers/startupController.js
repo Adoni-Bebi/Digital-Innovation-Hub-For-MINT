@@ -136,7 +136,10 @@ exports.getPendingStartups = async (req, res) => {
 // ====================== ADMIN: APPROVE STARTUP ======================
 exports.approveStartup = async (req, res) => {
   try {
-    const startup = await Startup.findById(req.params.id);
+    const startup = await Startup.findById(req.params.id).populate(
+      'founder',
+      'fullName email'
+    );
 
     if (!startup) {
       return res.status(404).json({ success: false, message: 'Startup not found' });
@@ -146,6 +149,35 @@ exports.approveStartup = async (req, res) => {
     startup.verifiedAt = new Date();
     startup.rejectionReason = undefined;
     await startup.save();
+
+    // ===== EMAIL FOUNDER =====
+    const sendEmail = require('../utils/sendEmail');
+    if (startup.founder?.email) {
+      await sendEmail({
+        to: startup.founder.email,
+        subject: `MinT Verified – ${startup.companyName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0d9488;">Your Startup is MinT Verified</h2>
+            <p>Hello ${startup.founder.fullName},</p>
+            <p>
+              Congratulations! <strong>${startup.companyName}</strong> has been reviewed and
+              <strong>verified</strong> by the Ministry of Innovation and Technology.
+            </p>
+            <p>Your startup is now visible in the public directory and open to investor interest.</p>
+            <p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory/${startup._id}"
+                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                View Public Profile
+              </a>
+            </p>
+            <p style="color: #666; font-size: 13px; margin-top: 30px;">
+              Digital Innovation Hub · Ministry of Innovation and Technology
+            </p>
+          </div>
+        `,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -160,7 +192,10 @@ exports.approveStartup = async (req, res) => {
 // ====================== ADMIN: REJECT STARTUP ======================
 exports.rejectStartup = async (req, res) => {
   try {
-    const startup = await Startup.findById(req.params.id);
+    const startup = await Startup.findById(req.params.id).populate(
+      'founder',
+      'fullName email'
+    );
 
     if (!startup) {
       return res.status(404).json({ success: false, message: 'Startup not found' });
@@ -169,6 +204,36 @@ exports.rejectStartup = async (req, res) => {
     startup.status = 'rejected';
     startup.rejectionReason = req.body.reason || 'Did not meet verification criteria';
     await startup.save();
+
+    // ===== EMAIL FOUNDER =====
+    const sendEmail = require('../utils/sendEmail');
+    if (startup.founder?.email) {
+      await sendEmail({
+        to: startup.founder.email,
+        subject: `Verification Update – ${startup.companyName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #64748b;">Startup Verification Update</h2>
+            <p>Hello ${startup.founder.fullName},</p>
+            <p>
+              After review, <strong>${startup.companyName}</strong> was not approved for
+              MinT verification at this time.
+            </p>
+            <p><strong>Reason:</strong> ${startup.rejectionReason}</p>
+            <p>You can update your profile and resubmit for review.</p>
+            <p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/founder"
+                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                Go to Dashboard
+              </a>
+            </p>
+            <p style="color: #666; font-size: 13px; margin-top: 30px;">
+              Digital Innovation Hub · Ministry of Innovation and Technology
+            </p>
+          </div>
+        `,
+      });
+    }
 
     res.status(200).json({
       success: true,
