@@ -21,7 +21,6 @@ export default function FounderDashboard() {
       const startupRes = await apiRequest("/startups/my");
       setStartup(startupRes.data);
 
-      // Only fetch requests if startup exists
       try {
         const reqRes = await apiRequest("/access-requests/incoming");
         setRequests(reqRes.data || []);
@@ -48,7 +47,11 @@ export default function FounderDashboard() {
     try {
       await apiRequest(`/access-requests/${id}/${action}`, { method: "PATCH" });
       setRequests((prev) =>
-        prev.map((r) => (r._id === id ? { ...r, status: action === "approve" ? "approved" : "denied" } : r))
+        prev.map((r) =>
+          r._id === id
+            ? { ...r, status: action === "approve" ? "approved" : "denied" }
+            : r
+        )
       );
     } catch (err) {
       alert(err.message);
@@ -72,7 +75,9 @@ export default function FounderDashboard() {
         <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <PlusCircle className="text-primary-600" size={32} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Create your Startup Profile</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">
+          Create your Startup Profile
+        </h1>
         <p className="text-slate-500 mb-8 max-w-md mx-auto">
           You haven't submitted a startup yet. Create your profile to get MinT-verified.
         </p>
@@ -97,7 +102,9 @@ export default function FounderDashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Founder Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Welcome back, {user?.fullName}</p>
+        <p className="text-slate-500 text-sm mt-1">
+          Welcome back, {user?.fullName}
+        </p>
       </div>
 
       {error && (
@@ -130,49 +137,72 @@ export default function FounderDashboard() {
 
           <div className="divide-y divide-slate-100">
             {requests.length === 0 ? (
-              <p className="p-6 text-sm text-slate-500 text-center">No access requests yet.</p>
+              <p className="p-8 text-sm text-slate-500 text-center">
+                No access requests yet.
+              </p>
             ) : (
               requests.map((req) => (
-                <div key={req._id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 text-sm">
-                      {req.investor?.fullName || "Investor"}
+                <div key={req._id} className="px-6 py-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    {/* Investor Info */}
+                    <div className="flex-1 space-y-1.5">
+                      <div className="font-semibold text-slate-900 text-sm">
+                        {req.investor?.fullName || "Investor"}
+                      </div>
+
+                      <div className="text-xs text-slate-500 space-y-1">
+                        <div>
+                          <span className="text-slate-400">Organization:</span>{" "}
+                          {req.investor?.organization || "—"}
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Ticket size:</span>{" "}
+                          {req.investor?.ticketSize || "—"}
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Focus:</span>{" "}
+                          {req.investor?.focus?.length > 0
+                            ? req.investor.focus.join(", ")
+                            : "—"}
+                        </div>
+                        <div className="text-slate-400 pt-0.5">
+                          Requested {new Date(req.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      {req.investor?.organization || req.investor?.email} ·{" "}
-                      {new Date(req.createdAt).toLocaleDateString()}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {req.status === "pending" ? (
+                        <>
+                          <button
+                            onClick={() => handleAction(req._id, "approve")}
+                            disabled={actionLoading === req._id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50"
+                          >
+                            <Check size={13} /> Approve
+                          </button>
+                          <button
+                            onClick={() => handleAction(req._id, "deny")}
+                            disabled={actionLoading === req._id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
+                          >
+                            <X size={13} /> Deny
+                          </button>
+                        </>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
+                            req.status === "approved"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {req.status === "approved" ? <Check size={12} /> : <X size={12} />}
+                          {req.status}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {req.status === "pending" ? (
-                      <>
-                        <button
-                          onClick={() => handleAction(req._id, "approve")}
-                          disabled={actionLoading === req._id}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50"
-                        >
-                          <Check size={13} /> Approve
-                        </button>
-                        <button
-                          onClick={() => handleAction(req._id, "deny")}
-                          disabled={actionLoading === req._id}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
-                        >
-                          <X size={13} /> Deny
-                        </button>
-                      </>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
-                          req.status === "approved"
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {req.status === "approved" ? <Check size={12} /> : <X size={12} />}
-                        {req.status}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))
@@ -188,8 +218,12 @@ export default function FounderDashboard() {
                 {startup.logo}
               </div>
               <div>
-                <div className="font-medium text-slate-900 text-sm">{startup.companyName}</div>
-                <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${statusColor[startup.status]}`}>
+                <div className="font-medium text-slate-900 text-sm">
+                  {startup.companyName}
+                </div>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full border capitalize ${statusColor[startup.status]}`}
+                >
                   {startup.status}
                 </span>
               </div>

@@ -4,13 +4,33 @@ import { useAuth } from "../../context/AuthContext";
 import { apiRequest } from "../../utils/api";
 import StatCard from "../../components/StatCard";
 import StartupCard from "../../components/StartupCard";
-import { Search, Send, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { Search, Send, CheckCircle, Clock, Loader2, Pencil } from "lucide-react";
+import { SECTORS } from "../../data/mockData";
 
 export default function InvestorDashboard() {
-  const { user } = useAuth();
+  const { user, login } = useAuth(); // we'll refresh user after profile update
   const [requests, setRequests] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
+
+  const [profileForm, setProfileForm] = useState({
+    organization: "",
+    ticketSize: "",
+    focus: [],
+  });
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        organization: user.organization || "",
+        ticketSize: user.ticketSize || "",
+        focus: user.focus || [],
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,6 +49,43 @@ export default function InvestorDashboard() {
     };
     fetchData();
   }, []);
+
+  const handleFocusToggle = (sector) => {
+    setProfileForm((prev) => {
+      const exists = prev.focus.includes(sector);
+      return {
+        ...prev,
+        focus: exists
+          ? prev.focus.filter((s) => s !== sector)
+          : [...prev.focus, sector],
+      };
+    });
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setProfileError("");
+
+    try {
+      const res = await apiRequest("/auth/profile", {
+        method: "PUT",
+        body: profileForm,
+      });
+
+      // Update localStorage so AuthContext stays in sync
+      const savedUser = JSON.parse(localStorage.getItem("dih_user") || "{}");
+      const updatedUser = { ...savedUser, ...res.user };
+      localStorage.setItem("dih_user", JSON.stringify(updatedUser));
+
+      // Force page refresh of user data (simple way)
+      window.location.reload();
+    } catch (err) {
+      setProfileError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
   const approvedCount = requests.filter((r) => r.status === "approved").length;
@@ -54,7 +111,7 @@ export default function InvestorDashboard() {
         <StatCard label="Requests Sent" value={requests.length} icon={Send} color="blue" />
         <StatCard label="Approved" value={approvedCount} icon={CheckCircle} color="primary" />
         <StatCard label="Pending" value={pendingCount} icon={Clock} color="amber" />
-        <StatCard label="Saved" value="—" icon={Search} color="purple" />
+        <StatCard label="Focus Sectors" value={user?.focus?.length || 0} icon={Search} color="purple" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -69,12 +126,15 @@ export default function InvestorDashboard() {
 
           <div className="divide-y divide-slate-100">
             {requests.length === 0 ? (
-              <p className="p-8 text-center text-sm text-slate-500">
-                No access requests yet.{" "}
-                <Link to="/directory" className="text-primary-600 hover:underline">
-                  Browse startups
+              <div className="p-8 text-center">
+                <p className="text-sm text-slate-500 mb-3">No access requests yet.</p>
+                <Link
+                  to="/directory"
+                  className="text-sm font-medium text-primary-600 hover:underline"
+                >
+                  Browse startups →
                 </Link>
-              </p>
+              </div>
             ) : (
               requests.map((req) => (
                 <div key={req._id} className="px-6 py-4 flex items-center gap-4">
@@ -103,17 +163,119 @@ export default function InvestorDashboard() {
           </div>
         </div>
 
-        {/* Side panel */}
+        {/* Profile Card */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-900 mb-3">KYC Status</h3>
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle size={18} className="text-green-600" />
-              <span className="text-sm font-medium text-green-700">Approved</span>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-900">Investor Profile</h3>
+              <button
+                onClick={() => setShowEdit(!showEdit)}
+                className="p-1.5 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              >
+                <Pencil size={16} />
+              </button>
             </div>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p>Organization: {user?.organization || "—"}</p>
-            </div>
+
+            {!showEdit ? (
+              <div className="text-sm space-y-2">
+                <div>
+                  <span className="text-slate-500">Organization:</span>{" "}
+                  <span className="font-medium text-slate-800">
+                    {user?.organization || "Not set"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Ticket size:</span>{" "}
+                  <span className="font-medium text-slate-800">
+                    {user?.ticketSize || "Not set"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Focus:</span>{" "}
+                  <span className="font-medium text-slate-800">
+                    {user?.focus?.length > 0 ? user.focus.join(", ") : "Not set"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Organization
+                  </label>
+                  <input
+                    value={profileForm.organization}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, organization: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="East Africa Ventures"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Ticket Size
+                  </label>
+                  <select
+                    value={profileForm.ticketSize}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, ticketSize: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Select range</option>
+                    <option value="$10k–$50k">$10k–$50k</option>
+                    <option value="$50k–$250k">$50k–$250k</option>
+                    <option value="$250k–$1M">$250k–$1M</option>
+                    <option value="$1M+">$1M+</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                    Focus Sectors
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SECTORS.map((sector) => (
+                      <button
+                        key={sector}
+                        type="button"
+                        onClick={() => handleFocusToggle(sector)}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                          profileForm.focus.includes(sector)
+                            ? "bg-primary-50 border-primary-500 text-primary-700"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        {sector}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {profileError && (
+                  <p className="text-xs text-red-600">{profileError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white text-sm font-semibold rounded-lg"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEdit(false)}
+                    className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           <Link

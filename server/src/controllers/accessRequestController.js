@@ -81,14 +81,13 @@ exports.getMyRequests = async (req, res) => {
 // ====================== FOUNDER: GET INCOMING REQUESTS ======================
 exports.getIncomingRequests = async (req, res) => {
   try {
-    // Find the founder's startup
     const startup = await Startup.findOne({ founder: req.user._id });
     if (!startup) {
       return res.status(404).json({ success: false, message: 'You do not have a startup yet' });
     }
 
     const requests = await AccessRequest.find({ startup: startup._id })
-      .populate('investor', 'fullName email organization')
+      .populate('investor', 'fullName email organization ticketSize focus')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

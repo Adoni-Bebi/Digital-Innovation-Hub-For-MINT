@@ -27,12 +27,23 @@ const userSchema = new mongoose.Schema(
       default: 'founder',
     },
     companyName: String,
-    organization: String,
+    organization: {
+      type: String,
+      trim: true,
+    },
+    ticketSize: {
+      type: String,
+      trim: true,
+    },
+    focus: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
 
-// Hash password before saving (correct version)
+// Hash password before saving
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);

@@ -7,7 +7,7 @@ const signToken = (id) => {
   });
 };
 
-// REGISTER
+// ====================== REGISTER ======================
 exports.register = async (req, res) => {
   try {
     const { fullName, email, password, role } = req.body;
@@ -66,7 +66,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN
+// ====================== LOGIN ======================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -100,6 +100,8 @@ exports.login = async (req, res) => {
         role: user.role,
         companyName: user.companyName,
         organization: user.organization,
+        ticketSize: user.ticketSize,
+        focus: user.focus,
       },
     });
   } catch (error) {
@@ -108,5 +110,41 @@ exports.login = async (req, res) => {
       success: false,
       message: 'Server error during login',
     });
+  }
+};
+
+// ====================== UPDATE PROFILE ======================
+exports.updateProfile = async (req, res) => {
+  try {
+    const { fullName, organization, ticketSize, focus } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (fullName) user.fullName = fullName;
+    if (organization !== undefined) user.organization = organization;
+    if (ticketSize !== undefined) user.ticketSize = ticketSize;
+    if (focus !== undefined) user.focus = focus;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        organization: user.organization,
+        ticketSize: user.ticketSize,
+        focus: user.focus,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
