@@ -1,14 +1,15 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { apiRequest } from "../../utils/api";
 import { SECTORS, STAGES, LOCATIONS } from "../../data/mockData";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 
 export default function CreateStartup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [isEdit, setIsEdit] = useState(false);
 
   const [form, setForm] = useState({
     companyName: "",
@@ -24,6 +25,38 @@ export default function CreateStartup() {
     solutionStatement: "",
   });
 
+  // Load existing startup if any
+  useEffect(() => {
+    const loadStartup = async () => {
+      try {
+        const res = await apiRequest("/startups/my");
+        if (res.data) {
+          setIsEdit(true);
+          setForm({
+            companyName: res.data.companyName || "",
+            logo: res.data.logo || "🚀",
+            oneLineDescription: res.data.oneLineDescription || "",
+            sector: res.data.sector || "FinTech",
+            fundingStage: res.data.fundingStage || "Idea",
+            location: res.data.location || "Addis Ababa",
+            teamSize: res.data.teamSize || 1,
+            foundedYear: res.data.foundedYear || new Date().getFullYear(),
+            website: res.data.website || "",
+            problemStatement: res.data.problemStatement || "",
+            solutionStatement: res.data.solutionStatement || "",
+          });
+        }
+      } catch {
+        // No startup yet → create mode
+        setIsEdit(false);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    loadStartup();
+  }, []);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -34,14 +67,24 @@ export default function CreateStartup() {
     setLoading(true);
 
     try {
-      await apiRequest("/startups", {
-        method: "POST",
-        body: {
-          ...form,
-          teamSize: Number(form.teamSize),
-          foundedYear: Number(form.foundedYear),
-        },
-      });
+      const payload = {
+        ...form,
+        teamSize: Number(form.teamSize),
+        foundedYear: Number(form.foundedYear),
+      };
+
+      if (isEdit) {
+        await apiRequest("/startups/my", {
+          method: "PUT",
+          body: payload,
+        });
+      } else {
+        await apiRequest("/startups", {
+          method: "POST",
+          body: payload,
+        });
+      }
+
       navigate("/founder");
     } catch (err) {
       setError(err.message);
@@ -49,6 +92,14 @@ export default function CreateStartup() {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -59,16 +110,25 @@ export default function CreateStartup() {
         <ArrowLeft size={16} /> Back to Dashboard
       </Link>
 
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Create Startup Profile</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-2">
+        {isEdit ? "Edit Startup Profile" : "Create Startup Profile"}
+      </h1>
       <p className="text-slate-500 text-sm mb-8">
-        Submit your startup for MinT verification. Only verified startups appear in the public directory.
+        {isEdit
+          ? "Update your startup information. Major changes may require re-verification by MinT."
+          : "Submit your startup for MinT verification. Only verified startups appear in the public directory."}
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
+      >
         {/* Company Name + Logo */}
         <div className="grid sm:grid-cols-4 gap-4">
           <div className="sm:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Company Name *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Company Name *
+            </label>
             <input
               name="companyName"
               value={form.companyName}
@@ -79,7 +139,9 @@ export default function CreateStartup() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Logo (emoji)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Logo (emoji)
+            </label>
             <input
               name="logo"
               value={form.logo}
@@ -91,7 +153,9 @@ export default function CreateStartup() {
 
         {/* One Line Description */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">One-line Description *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            One-line Description *
+          </label>
           <input
             name="oneLineDescription"
             value={form.oneLineDescription}
@@ -119,7 +183,9 @@ export default function CreateStartup() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Funding Stage *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Funding Stage *
+            </label>
             <select
               name="fundingStage"
               value={form.fundingStage}
@@ -185,7 +251,9 @@ export default function CreateStartup() {
 
         {/* Problem */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Problem Statement *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Problem Statement *
+          </label>
           <textarea
             name="problemStatement"
             value={form.problemStatement}
@@ -199,7 +267,9 @@ export default function CreateStartup() {
 
         {/* Solution */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Solution Statement *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Solution Statement *
+          </label>
           <textarea
             name="solutionStatement"
             value={form.solutionStatement}
@@ -222,8 +292,10 @@ export default function CreateStartup() {
         >
           {loading ? (
             <>
-              <Loader2 size={18} className="animate-spin" /> Submitting...
+              <Loader2 size={18} className="animate-spin" /> Saving...
             </>
+          ) : isEdit ? (
+            "Save Changes"
           ) : (
             "Submit for MinT Verification"
           )}
