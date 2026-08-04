@@ -273,6 +273,41 @@ exports.getAdminStats = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+// ====================== ADMIN: LIST STARTUPS BY STATUS ======================
+exports.getAdminStartups = async (req, res) => {
+  try {
+    const { status, search, sector } = req.query;
+    const filter = {};
+
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    if (sector) {
+      filter.sector = sector;
+    }
+
+    if (search) {
+      filter.$or = [
+        { companyName: { $regex: search, $options: 'i' } },
+        { oneLineDescription: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const startups = await Startup.find(filter)
+      .populate('founder', 'fullName email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: startups.length,
+      data: startups,
+    });
+  } catch (error) {
+    console.error('Admin startups error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 // ====================== PUBLIC: HOME PAGE STATS ======================
 exports.getPublicStats = async (req, res) => {
   try {
