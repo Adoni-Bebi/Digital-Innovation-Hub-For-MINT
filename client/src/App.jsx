@@ -11,7 +11,7 @@ import FounderDashboard from "./pages/founder/FounderDashboard";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CreateStartup from "./pages/founder/CreateStartup";
-
+import DataRoom from "./pages/founder/DataRoom";
 // ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
   const { user, loading, isAuthenticated } = useAuth();
@@ -127,6 +127,14 @@ function AppLayout() {
             </ProtectedRoute>
             }
           />
+                <Route
+        path="/founder/data-room"
+        element={
+          <ProtectedRoute roles={["founder"]}>
+            <DataRoom />
+          </ProtectedRoute>
+        }
+      />
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

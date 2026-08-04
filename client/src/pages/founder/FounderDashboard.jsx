@@ -19,6 +19,7 @@ export default function FounderDashboard() {
   const { user } = useAuth();
   const [startup, setStartup] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [docCount, setDocCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
@@ -29,8 +30,12 @@ export default function FounderDashboard() {
       setStartup(startupRes.data);
 
       try {
-        const reqRes = await apiRequest("/access-requests/incoming");
+        const [reqRes, docsRes] = await Promise.all([
+          apiRequest("/access-requests/incoming"),
+          apiRequest("/documents/my"),
+        ]);
         setRequests(reqRes.data || []);
+        setDocCount(docsRes.count || docsRes.data?.length || 0);
       } catch {
         setRequests([]);
       }
@@ -86,8 +91,7 @@ export default function FounderDashboard() {
           Create your Startup Profile
         </h1>
         <p className="text-slate-500 mb-8 max-w-md mx-auto">
-          You haven’t submitted a startup yet. Create your profile to get MinT-verified
-          and appear in the public directory.
+          You haven’t submitted a startup yet. Create your profile to get MinT-verified.
         </p>
         <Link
           to="/founder/create"
@@ -128,27 +132,15 @@ export default function FounderDashboard() {
         />
         <StatCard
           label="Data Room Docs"
-          value="0"
+          value={docCount}
           icon={FileText}
           color="blue"
-          trend="Coming soon"
         />
-        <StatCard
-          label="Pending Requests"
-          value={pending.length}
-          icon={Inbox}
-          color="amber"
-        />
-        <StatCard
-          label="Total Requests"
-          value={requests.length}
-          icon={Eye}
-          color="purple"
-        />
+        <StatCard label="Pending Requests" value={pending.length} icon={Inbox} color="amber" />
+        <StatCard label="Total Requests" value={requests.length} icon={Eye} color="purple" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Incoming requests */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">Incoming Access Requests</h2>
@@ -160,17 +152,8 @@ export default function FounderDashboard() {
           <div className="divide-y divide-slate-100">
             {requests.length === 0 ? (
               <div className="p-10 text-center">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                  <Inbox className="text-slate-400" size={22} />
-                </div>
-                <p className="text-sm font-medium text-slate-700 mb-1">
-                  No access requests yet
-                </p>
-                <p className="text-xs text-slate-500">
-                  {startup.status === "verified"
-                    ? "Investors can request access from your public profile."
-                    : "Requests appear after your startup is MinT-verified."}
-                </p>
+                <Inbox className="mx-auto text-slate-300 mb-3" size={28} />
+                <p className="text-sm font-medium text-slate-700">No access requests yet</p>
               </div>
             ) : (
               requests.map((req) => (
@@ -200,7 +183,6 @@ export default function FounderDashboard() {
                         </div>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 shrink-0">
                       {req.status === "pending" ? (
                         <>
@@ -227,11 +209,7 @@ export default function FounderDashboard() {
                               : "bg-red-50 text-red-700"
                           }`}
                         >
-                          {req.status === "approved" ? (
-                            <Check size={12} />
-                          ) : (
-                            <X size={12} />
-                          )}
+                          {req.status === "approved" ? <Check size={12} /> : <X size={12} />}
                           {req.status}
                         </span>
                       )}
@@ -243,7 +221,6 @@ export default function FounderDashboard() {
           </div>
         </div>
 
-        {/* Side panel */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
@@ -251,9 +228,7 @@ export default function FounderDashboard() {
                 {startup.logo}
               </div>
               <div>
-                <div className="font-medium text-slate-900 text-sm">
-                  {startup.companyName}
-                </div>
+                <div className="font-medium text-slate-900 text-sm">{startup.companyName}</div>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full border capitalize ${statusColor[startup.status]}`}
                 >
@@ -267,6 +242,12 @@ export default function FounderDashboard() {
                 className="block w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg"
               >
                 Edit startup profile
+              </Link>
+              <Link
+                to="/founder/data-room"
+                className="block w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg"
+              >
+                Manage Data Room documents
               </Link>
               {startup.status === "verified" && (
                 <Link
@@ -286,26 +267,7 @@ export default function FounderDashboard() {
                 <h3 className="font-semibold text-primary-900">MinT Verified</h3>
               </div>
               <p className="text-sm text-primary-800">
-                Your startup is publicly visible. Investors can request Data Room access.
-              </p>
-            </div>
-          )}
-
-          {startup.status === "pending" && (
-            <div className="bg-amber-50 rounded-2xl border border-amber-100 p-5">
-              <h3 className="font-semibold text-amber-900 mb-1">Under Review</h3>
-              <p className="text-sm text-amber-800">
-                Your profile is waiting for MinT verification.
-              </p>
-            </div>
-          )}
-
-          {startup.status === "rejected" && (
-            <div className="bg-red-50 rounded-2xl border border-red-100 p-5">
-              <h3 className="font-semibold text-red-900 mb-1">Not Approved</h3>
-              <p className="text-sm text-red-800">
-                {startup.rejectionReason ||
-                  "Please update your profile and contact MinT if needed."}
+                Investors with approved access can download your Data Room files.
               </p>
             </div>
           )}

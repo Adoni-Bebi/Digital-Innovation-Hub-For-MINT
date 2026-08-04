@@ -3,6 +3,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const startupRoutes = require('./routes/startupRoutes');
 const accessRequestRoutes = require('./routes/accessRequestRoutes');
+const documentRoutes = require('./routes/documentRoutes');
 
 const app = express();
 
@@ -12,9 +13,24 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/startups', startupRoutes);
 app.use('/api/access-requests', accessRequestRoutes);
+app.use('/api/documents', documentRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Digital Innovation Hub API is running' });
+});
+
+// Multer / general error handler
+app.use((err, req, res, next) => {
+  if (err instanceof require('multer').MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, message: 'File too large (max 10MB)' });
+    }
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  if (err.message && err.message.includes('File type not allowed')) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  next(err);
 });
 
 module.exports = app;

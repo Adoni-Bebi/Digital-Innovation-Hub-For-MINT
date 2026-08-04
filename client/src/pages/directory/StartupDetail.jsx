@@ -3,8 +3,18 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { apiRequest } from "../../utils/api";
 import {
-  BadgeCheck, MapPin, Users, Calendar, ExternalLink,
-  ArrowLeft, Lock, FileText, Send, Loader2
+  BadgeCheck,
+  MapPin,
+  Users,
+  Calendar,
+  ExternalLink,
+  ArrowLeft,
+  Lock,
+  FileText,
+  Send,
+  Loader2,
+  Download,
+  Unlock,
 } from "lucide-react";
 
 export default function StartupDetail() {
@@ -14,8 +24,11 @@ export default function StartupDetail() {
   const [startup, setStartup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [requestStatus, setRequestStatus] = useState(null); // null | 'pending' | 'approved' | 'denied'
+  const [requestStatus, setRequestStatus] = useState(null);
   const [requestLoading, setRequestLoading] = useState(false);
+  const [docs, setDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,19 +36,26 @@ export default function StartupDetail() {
         const res = await apiRequest(`/startups/${id}`);
         setStartup(res.data);
 
-        // If investor, check if they already requested
         if (isAuthenticated && user?.role === "investor") {
           try {
             const myRequests = await apiRequest("/access-requests/my");
             const existing = (myRequests.data || []).find(
-              (r) => r.startup?._id === id || r.startup === id
+              (r) => (r.startup?._id || r.startup) === id
             );
             if (existing) {
               setRequestStatus(existing.status);
+              if (existing.status === "approved") {
+                setHasAccess(true);
+              }
             }
           } catch {
             // ignore
           }
+        }
+
+        // Founder of this startup also has access (if logged in as founder)
+        if (isAuthenticated && user?.role === "founder") {
+          // access checked via documents API
         }
       } catch (err) {
         setError(err.message || "Startup not found");
@@ -46,6 +66,30 @@ export default function StartupDetail() {
 
     fetchData();
   }, [id, isAuthenticated, user]);
+
+  // Load docs when access granted
+  useEffect(() => {
+    const loadDocs = async () => {
+      if (!isAuthenticated || !id) return;
+
+      // Try loading — backend enforces permission
+      setDocsLoading(true);
+      try {
+        const res = await apiRequest(`/documents/startup/${id}`);
+        setDocs(res.data || []);
+        setHasAccess(true);
+      } catch {
+        setDocs([]);
+        // keep hasAccess from request status for investors
+      } finally {
+        setDocsLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadDocs();
+    }
+  }, [id, isAuthenticated, requestStatus]);
 
   const handleRequestAccess = async () => {
     setRequestLoading(true);
@@ -59,6 +103,20 @@ export default function StartupDetail() {
       alert(err.message || "Failed to send request");
     } finally {
       setRequestLoading(false);
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      const blob = await apiRequest(`/documents/${doc._id}/download`, { blob: true });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.originalName;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -92,7 +150,6 @@ export default function StartupDetail() {
         <ArrowLeft size={16} /> Back to directory
       </Link>
 
-      {/* Header */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-start gap-5">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl shrink-0">
@@ -109,13 +166,24 @@ export default function StartupDetail() {
             </div>
             <p className="text-slate-600 mb-4">{startup.oneLineDescription}</p>
             <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-              <span className="flex items-center gap-1"><MapPin size={14} /> {startup.location}</span>
-              <span className="flex items-center gap-1"><Users size={14} /> {startup.teamSize} team members</span>
+              <span className="flex items-center gap-1">
+                <MapPin size={14} /> {startup.location}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users size={14} /> {startup.teamSize} team members
+              </span>
               {startup.foundedYear && (
-                <span className="flex items-center gap-1"><Calendar size={14} /> Founded {startup.foundedYear}</span>
+                <span className="flex items-center gap-1">
+                  <Calendar size={14} /> Founded {startup.foundedYear}
+                </span>
               )}
               {startup.website && (
-                <a href={startup.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary-600 hover:underline">
+                <a
+                  href={startup.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-primary-600 hover:underline"
+                >
                   <ExternalLink size={14} /> Website
                 </a>
               )}
@@ -148,59 +216,103 @@ export default function StartupDetail() {
           {/* Data Room */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Lock size={18} className="text-slate-400" />
+              {hasAccess ? (
+                <Unlock size={18} className="text-primary-600" />
+              ) : (
+                <Lock size={18} className="text-slate-400" />
+              )}
               <h2 className="text-lg font-semibold text-slate-900">Secure Data Room</h2>
             </div>
-            <p className="text-sm text-slate-500 mb-4">
-              Sensitive documents are available only after the founder approves your access request.
-            </p>
-            <div className="space-y-2 mb-5">
-              {["Pitch Deck", "Financial Projections", "Business Registration", "Supplementary Docs"].map((doc) => (
-                <div key={doc} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                  <FileText size={16} className="text-slate-400" />
-                  <span className="text-sm text-slate-600 flex-1">{doc}</span>
-                  <Lock size={13} className="text-slate-300" />
-                </div>
-              ))}
-            </div>
 
-            {/* Request Button Logic */}
-            {requestStatus === "pending" ? (
-              <div className="text-center py-2.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg border border-amber-200">
-                Request sent — awaiting founder approval
-              </div>
-            ) : requestStatus === "approved" ? (
-              <div className="text-center py-2.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg border border-green-200">
-                Access granted
-              </div>
-            ) : requestStatus === "denied" ? (
-              <div className="text-center py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg border border-red-200">
-                Request denied
-              </div>
-            ) : isAuthenticated && user?.role === "investor" ? (
-              <button
-                onClick={handleRequestAccess}
-                disabled={requestLoading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                {requestLoading ? (
-                  <Loader2 size={15} className="animate-spin" />
+            {hasAccess ? (
+              <>
+                <p className="text-sm text-slate-500 mb-4">
+                  Access granted. You can download the documents below.
+                </p>
+                {docsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+                  </div>
+                ) : docs.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-4">
+                    No documents uploaded yet.
+                  </p>
                 ) : (
-                  <Send size={15} />
+                  <div className="space-y-2">
+                    {docs.map((doc) => (
+                      <div
+                        key={doc._id}
+                        className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+                      >
+                        <FileText size={16} className="text-primary-600 shrink-0" />
+                        <span className="text-sm text-slate-700 flex-1 truncate">
+                          {doc.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(doc)}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          <Download size={13} /> Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                Request Data Room Access
-              </button>
-            ) : !isAuthenticated ? (
-              <Link
-                to="/login"
-                className="block w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-colors"
-              >
-                Sign in as Investor to Request
-              </Link>
+              </>
             ) : (
-              <p className="text-center text-xs text-slate-400 py-2">
-                Only investors can request access
-              </p>
+              <>
+                <p className="text-sm text-slate-500 mb-4">
+                  Sensitive documents are available only after the founder approves your
+                  access request.
+                </p>
+                <div className="space-y-2 mb-5">
+                  {["Pitch Deck", "Financials", "Legal Docs", "Other"].map((label) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+                    >
+                      <FileText size={16} className="text-slate-400" />
+                      <span className="text-sm text-slate-600 flex-1">{label}</span>
+                      <Lock size={13} className="text-slate-300" />
+                    </div>
+                  ))}
+                </div>
+
+                {requestStatus === "pending" ? (
+                  <div className="text-center py-2.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg border border-amber-200">
+                    Request sent — awaiting founder approval
+                  </div>
+                ) : requestStatus === "denied" ? (
+                  <div className="text-center py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg border border-red-200">
+                    Request denied
+                  </div>
+                ) : isAuthenticated && user?.role === "investor" ? (
+                  <button
+                    onClick={handleRequestAccess}
+                    disabled={requestLoading}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white text-sm font-semibold rounded-lg"
+                  >
+                    {requestLoading ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Send size={15} />
+                    )}
+                    Request Data Room Access
+                  </button>
+                ) : !isAuthenticated ? (
+                  <Link
+                    to="/login"
+                    className="block w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg"
+                  >
+                    Sign in as Investor to Request
+                  </Link>
+                ) : (
+                  <p className="text-center text-xs text-slate-400 py-2">
+                    Only investors can request access
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -210,12 +322,13 @@ export default function StartupDetail() {
                 Verified by MinT
               </p>
               <p className="text-sm text-primary-800">
-                This startup was reviewed and approved on{" "}
+                Approved on{" "}
                 {new Date(startup.verifiedAt).toLocaleDateString("en-ET", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
-                })}.
+                })}
+                .
               </p>
             </div>
           )}

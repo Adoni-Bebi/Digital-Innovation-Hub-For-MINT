@@ -3,19 +3,32 @@ const API_BASE = "http://localhost:5000/api";
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem("dih_token");
 
+  const isFormData = options.body instanceof FormData;
+
   const config = {
+    method: options.method || "GET",
     headers: {
-      "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
+      ...(!isFormData && { "Content-Type": "application/json" }),
+      ...(options.headers || {}),
     },
-    ...options,
   };
 
   if (options.body) {
-    config.body = JSON.stringify(options.body);
+    config.body = isFormData ? options.body : JSON.stringify(options.body);
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, config);
+
+  // File download
+  if (options.blob) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Download failed");
+    }
+    return res.blob();
+  }
+
   const data = await res.json();
 
   if (!res.ok) {
