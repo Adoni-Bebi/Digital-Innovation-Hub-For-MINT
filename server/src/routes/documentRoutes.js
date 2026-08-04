@@ -13,12 +13,10 @@ const router = express.Router();
 
 router.use(protect);
 
-// Founder
 router.post('/', restrictTo('founder'), upload.single('file'), uploadDocument);
 router.get('/my', restrictTo('founder'), getMyDocuments);
 router.delete('/:id', restrictTo('founder'), deleteDocument);
 
-// Shared (founder / approved investor / admin)
 router.get('/startup/:startupId', getStartupDocuments);
 router.get('/:id/download', downloadDocument);
 

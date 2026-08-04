@@ -1,25 +1,21 @@
-const path = require('path');
-const fs = require('fs');
+const streamifier = require('streamifier');
+const cloudinary = require('../config/cloudinary');
 const Document = require('../models/Document');
 const Startup = require('../models/Startup');
 const AccessRequest = require('../models/AccessRequest');
 
-// Check if user can access startup documents
 async function canAccessDocuments(user, startupId) {
   const startup = await Startup.findById(startupId);
   if (!startup) return { allowed: false, startup: null, reason: 'Startup not found' };
 
-  // Founder owns it
   if (startup.founder.toString() === user._id.toString()) {
     return { allowed: true, startup, role: 'founder' };
   }
 
-  // Admin can view
   if (user.role === 'admin') {
     return { allowed: true, startup, role: 'admin' };
   }
 
-  // Investor needs approved access request
   if (user.role === 'investor') {
     const request = await AccessRequest.findOne({
       startup: startupId,
@@ -35,6 +31,87 @@ async function canAccessDocuments(user, startupId) {
   return { allowed: false, startup, reason: 'Not authorized' };
 }
 
+function getResourceType(mimeType = '') {
+  if (mimeType.startsWith('image/')) return 'image';
+  // pdf, word, excel, ppt, text → raw
+  return 'raw';
+}
+
+function uploadToCloudinary(buffer, mimeType, folder = 'dih-dataroom') {
+  const resourceType = getResourceType(mimeType);
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: resourceType,
+        type: 'upload',
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+}
+
+/** Build a working delivery URL for any type */
+function getDeliveryUrl(doc) {
+  const resourceType = doc.resourceType || getResourceType(doc.mimeType);
+
+  // Prefer signed URL with correct resource_type (no fl_attachment)
+  try {
+    return cloudinary.utils.url(doc.cloudinaryPublicId, {
+      resource_type: resourceType,
+      type: 'upload',
+      secure: true,
+      sign_url: true,
+    });
+  } catch {
+    return doc.cloudinaryUrl;
+  }
+}
+
+async function fetchCloudFile(doc) {
+  const urlsToTry = [];
+
+  // 1) Signed URL with correct resource type
+  urlsToTry.push(getDeliveryUrl(doc));
+
+  // 2) Stored secure_url from upload
+  if (doc.cloudinaryUrl) {
+    urlsToTry.push(doc.cloudinaryUrl);
+  }
+
+  // 3) Unsigned URL fallback
+  const resourceType = doc.resourceType || getResourceType(doc.mimeType);
+  urlsToTry.push(
+    cloudinary.utils.url(doc.cloudinaryPublicId, {
+      resource_type: resourceType,
+      type: 'upload',
+      secure: true,
+    })
+  );
+
+  let lastError = null;
+
+  for (const url of urlsToTry) {
+    if (!url) continue;
+    try {
+      const cloudRes = await fetch(url);
+      if (cloudRes.ok) {
+        return cloudRes;
+      }
+      lastError = new Error(`Cloudinary HTTP ${cloudRes.status} for ${url}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Could not fetch file from Cloudinary');
+}
+
 // ====================== UPLOAD (Founder) ======================
 exports.uploadDocument = async (req, res) => {
   try {
@@ -44,24 +121,25 @@ exports.uploadDocument = async (req, res) => {
 
     const { title } = req.body;
     if (!title || !title.trim()) {
-      // cleanup uploaded file
-      fs.unlinkSync(req.file.path);
       return res.status(400).json({ success: false, message: 'Document title is required' });
     }
 
     const startup = await Startup.findOne({ founder: req.user._id });
     if (!startup) {
-      fs.unlinkSync(req.file.path);
       return res.status(404).json({ success: false, message: 'You do not have a startup yet' });
     }
+
+    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
 
     const doc = await Document.create({
       startup: startup._id,
       title: title.trim(),
       originalName: req.file.originalname,
-      fileName: req.file.filename,
       mimeType: req.file.mimetype,
       size: req.file.size,
+      cloudinaryPublicId: result.public_id,
+      cloudinaryUrl: result.secure_url,
+      resourceType: result.resource_type || getResourceType(req.file.mimetype),
       uploadedBy: req.user._id,
     });
 
@@ -72,14 +150,11 @@ exports.uploadDocument = async (req, res) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ success: false, message: error.message || 'Upload failed' });
   }
 };
 
-// ====================== LIST DOCS FOR MY STARTUP (Founder) ======================
+// ====================== LIST MY DOCS (Founder) ======================
 exports.getMyDocuments = async (req, res) => {
   try {
     const startup = await Startup.findOne({ founder: req.user._id });
@@ -99,7 +174,7 @@ exports.getMyDocuments = async (req, res) => {
   }
 };
 
-// ====================== LIST DOCS FOR A STARTUP (with access control) ======================
+// ====================== LIST FOR STARTUP ======================
 exports.getStartupDocuments = async (req, res) => {
   try {
     const { startupId } = req.params;
@@ -124,7 +199,7 @@ exports.getStartupDocuments = async (req, res) => {
   }
 };
 
-// ====================== DOWNLOAD ======================
+// ====================== DOWNLOAD (all types, founder + investor) ======================
 exports.downloadDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -140,24 +215,26 @@ exports.downloadDocument = async (req, res) => {
       });
     }
 
-    const filePath = path.join(__dirname, '../uploads', doc.fileName);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: 'File missing on server' });
-    }
+    const cloudRes = await fetchCloudFile(doc);
+    const arrayBuffer = await cloudRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    res.setHeader('Content-Type', doc.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(doc.originalName)}"`
-    );
-    fs.createReadStream(filePath).pipe(res);
+    const fileName = (doc.originalName || 'document').replace(/"/g, '');
+
+    res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', buffer.length);
+    return res.send(buffer);
   } catch (error) {
     console.error('Download error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
   }
 };
 
-// ====================== DELETE (Founder only) ======================
+// ====================== DELETE (Founder) ======================
 exports.deleteDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -170,9 +247,12 @@ exports.deleteDocument = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const filePath = path.join(__dirname, '../uploads', doc.fileName);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      await cloudinary.uploader.destroy(doc.cloudinaryPublicId, {
+        resource_type: doc.resourceType || getResourceType(doc.mimeType),
+      });
+    } catch (cloudErr) {
+      console.error('Cloudinary delete warning:', cloudErr.message);
     }
 
     await doc.deleteOne();

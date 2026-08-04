@@ -106,19 +106,21 @@ export default function StartupDetail() {
     }
   };
 
-  const handleDownload = async (doc) => {
-    try {
-      const blob = await apiRequest(`/documents/${doc._id}/download`, { blob: true });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = doc.originalName;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+ const handleDownload = async (doc) => {
+  try {
+    const blob = await apiRequest(`/documents/${doc._id}/download`, { blob: true });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = doc.originalName || "document";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message || "Download failed");
+  }
+};
 
   if (loading) {
     return (

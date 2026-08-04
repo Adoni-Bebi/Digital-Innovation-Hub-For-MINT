@@ -16,10 +16,6 @@ const documentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    fileName: {
-      type: String,
-      required: true,
-    },
     mimeType: {
       type: String,
       required: true,
@@ -27,6 +23,19 @@ const documentSchema = new mongoose.Schema(
     size: {
       type: Number,
       required: true,
+    },
+    // Cloudinary fields
+    cloudinaryPublicId: {
+      type: String,
+      required: true,
+    },
+    cloudinaryUrl: {
+      type: String,
+      required: true,
+    },
+    resourceType: {
+      type: String,
+      default: 'raw', // pdf/docs often "raw"; images "image"
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -61,7 +61,6 @@ export default function DataRoom() {
 
       setTitle("");
       setFile(null);
-      // reset file input
       const input = document.getElementById("data-room-file");
       if (input) input.value = "";
 
@@ -73,19 +72,22 @@ export default function DataRoom() {
     }
   };
 
+  // IMPORTANT: blob download (same as investor)
   const handleDownload = async (doc) => {
-    try {
-      const blob = await apiRequest(`/documents/${doc._id}/download`, { blob: true });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = doc.originalName;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  try {
+    const blob = await apiRequest(`/documents/${doc._id}/download`, { blob: true });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = doc.originalName || "document";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message || "Download failed");
+  }
+};
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this document?")) return;
@@ -117,10 +119,9 @@ export default function DataRoom() {
 
       <h1 className="text-2xl font-bold text-slate-900 mb-2">Secure Data Room</h1>
       <p className="text-slate-500 text-sm mb-8">
-        Upload sensitive documents. Only investors you approve can download them.
+        Upload sensitive documents to the cloud. Only investors you approve can download them.
       </p>
 
-      {/* Upload form */}
       <form
         onSubmit={handleUpload}
         className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-8 space-y-4"
@@ -130,9 +131,7 @@ export default function DataRoom() {
         </h2>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Title *
-          </label>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Title *</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -164,7 +163,7 @@ export default function DataRoom() {
         >
           {uploading ? (
             <>
-              <Loader2 size={16} className="animate-spin" /> Uploading…
+              <Loader2 size={16} className="animate-spin" /> Uploading to cloud…
             </>
           ) : (
             <>
@@ -174,12 +173,9 @@ export default function DataRoom() {
         </button>
       </form>
 
-      {/* Document list */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">
-            Documents ({docs.length})
-          </h2>
+          <h2 className="font-semibold text-slate-900">Documents ({docs.length})</h2>
         </div>
 
         {docs.length === 0 ? (

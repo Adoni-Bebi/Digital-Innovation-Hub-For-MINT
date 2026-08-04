@@ -9,7 +9,7 @@ export async function apiRequest(endpoint, options = {}) {
     method: options.method || "GET",
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
-      ...(!isFormData && { "Content-Type": "application/json" }),
+      ...(!isFormData && !options.blob && { "Content-Type": "application/json" }),
       ...(options.headers || {}),
     },
   };
@@ -20,11 +20,17 @@ export async function apiRequest(endpoint, options = {}) {
 
   const res = await fetch(`${API_BASE}${endpoint}`, config);
 
-  // File download
+  // Binary download (PDF, etc.)
   if (options.blob) {
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Download failed");
+      let message = "Download failed";
+      try {
+        const err = await res.json();
+        message = err.message || message;
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
     }
     return res.blob();
   }
