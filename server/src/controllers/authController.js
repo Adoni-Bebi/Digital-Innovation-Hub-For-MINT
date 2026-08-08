@@ -7,6 +7,17 @@ const signToken = (id) => {
   });
 };
 
+const formatUser = (user) => ({
+  id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  role: user.role,
+  companyName: user.companyName || '',
+  organization: user.organization || '',
+  investmentRange: user.investmentRange || '',
+  focus: user.focus || [],
+});
+
 // ====================== REGISTER ======================
 exports.register = async (req, res) => {
   try {
@@ -50,12 +61,7 @@ const userRole = allowedRoles.includes(role) ? role : 'founder';
       success: true,
       message: 'Account created successfully',
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-      },
+      user: formatUser(user),
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -93,16 +99,7 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Logged in successfully',
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        companyName: user.companyName,
-        organization: user.organization,
-        investmentRange: user.investmentRange,
-        focus: user.focus,
-      },
+      user: formatUser(user),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -113,38 +110,92 @@ exports.login = async (req, res) => {
   }
 };
 
-// ====================== UPDATE PROFILE ======================
+// ====================== UPDATE PROFILE (all roles) ======================
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, organization, investmentRange, focus } = req.body;
+    const {
+      fullName,
+      companyName,
+      organization,
+      investmentRange,
+      focus,
+      currentPassword,
+      newPassword,
+    } = req.body;
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (fullName) user.fullName = fullName;
-    if (organization !== undefined) user.organization = organization;
-    if (investmentRange !== undefined) user.investmentRange = investmentRange;
-    if (focus !== undefined) user.focus = focus;
+    // Common field
+    if (fullName !== undefined && fullName.trim()) {
+      user.fullName = fullName.trim();
+    }
+
+    // Founder-specific
+    if (user.role === 'founder' && companyName !== undefined) {
+      user.companyName = companyName.trim();
+    }
+
+    // Investor-specific
+    if (user.role === 'investor') {
+      if (organization !== undefined) user.organization = organization.trim();
+      if (investmentRange !== undefined) user.investmentRange = investmentRange.trim();
+      if (focus !== undefined) {
+        user.focus = Array.isArray(focus) ? focus : [];
+      }
+    }
+
+    // Optional password change (all roles)
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is required to set a new password',
+        });
+      }
+
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is incorrect',
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password must be at least 6 characters',
+        });
+      }
+
+      user.password = newPassword; // pre-save hook will hash it
+    }
 
     await user.save();
 
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        organization: user.organization,
-        investmentRange: user.investmentRange,
-        focus: user.focus,
-      },
+      user: formatUser(user),
     });
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// ====================== GET ME (optional helper) ======================
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.status(200).json({ success: true, user: formatUser(user) });
+  } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

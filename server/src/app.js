@@ -4,6 +4,7 @@ const authRoutes = require('./routes/authRoutes');
 const startupRoutes = require('./routes/startupRoutes');
 const accessRequestRoutes = require('./routes/accessRequestRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/startups', startupRoutes);
 app.use('/api/access-requests', accessRequestRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Digital Innovation Hub API is running' });

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  Menu, X, LogOut, LayoutDashboard
+  Menu, X, LogOut, LayoutDashboard, User
 } from "lucide-react";
 import { useState } from "react";
 
@@ -78,14 +78,17 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <div className="text-right">
+                <Link
+                  to="/profile"
+                  className="text-right hover:opacity-80 transition-opacity"
+                >
                   <div className="text-sm font-medium text-slate-900">
                     {user.fullName}
                   </div>
                   <div className="text-xs text-slate-500 capitalize">
-                    {user.role}
+                    {user.role} · Profile
                   </div>
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -129,13 +132,22 @@ export default function Navbar() {
           {navLink("/directory", "Startup Directory")}
 
           {isAuthenticated && (
-            <Link
-              to={dashboardLink()}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700"
-            >
-              <LayoutDashboard size={16} /> Dashboard
-            </Link>
+            <>
+              <Link
+                to={dashboardLink()}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700"
+              >
+                <LayoutDashboard size={16} /> Dashboard
+              </Link>
+              <Link
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700"
+              >
+                <User size={16} /> Profile
+              </Link>
+            </>
           )}
 
           <div className="pt-3 border-t border-slate-100 mt-2">
