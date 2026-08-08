@@ -18,12 +18,13 @@ export default function Navbar() {
   };
 
   const dashboardLink = () => {
-    if (!user) return null;
-    if (user.role === "founder") return "/founder";
-    if (user.role === "investor") return "/investor";
-    if (user.role === "admin") return "/admin";
-    return "/";
-  };
+  if (!user) return null;
+  if (user.role === "founder") return "/founder";
+  if (user.role === "investor") return "/investor";
+  if (user.role === "admin") return "/admin";
+  if (user.role === "citizen") return "/citizen";
+  return "/";
+};
 
   const navLink = (to, label) => {
     const active =
@@ -70,6 +71,7 @@ export default function Navbar() {
             {isAuthenticated && user?.role === "founder" && navLink("/founder", "My Dashboard")}
             {isAuthenticated && user?.role === "investor" && navLink("/investor", "Investor Hub")}
             {isAuthenticated && user?.role === "admin" && navLink("/admin", "Admin Panel")}
+            {isAuthenticated && user?.role === "citizen" && navLink("/citizen", "Citizen Portal")}
           </nav>
 
           {/* Desktop Auth Section */}

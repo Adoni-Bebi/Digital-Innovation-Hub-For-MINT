@@ -12,6 +12,7 @@ import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CreateStartup from "./pages/founder/CreateStartup";
 import DataRoom from "./pages/founder/DataRoom";
+import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 // ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
   const { user, loading, isAuthenticated } = useAuth();
@@ -32,11 +33,12 @@ function ProtectedRoute({ children, roles }) {
 
   // Logged in but wrong role → redirect to their own dashboard
   if (roles && !roles.includes(user.role)) {
-    if (user.role === "founder") return <Navigate to="/founder" replace />;
-    if (user.role === "investor") return <Navigate to="/investor" replace />;
-    if (user.role === "admin") return <Navigate to="/admin" replace />;
-    return <Navigate to="/" replace />;
-  }
+  if (user.role === "founder") return <Navigate to="/founder" replace />;
+  if (user.role === "investor") return <Navigate to="/investor" replace />;
+  if (user.role === "admin") return <Navigate to="/admin" replace />;
+  if (user.role === "citizen") return <Navigate to="/citizen" replace />;
+  return <Navigate to="/" replace />;
+}
 
   return children;
 }
@@ -54,13 +56,13 @@ function PublicOnlyRoute({ children }) {
     );
   }
 
-  if (isAuthenticated) {
+    if (isAuthenticated) {
     if (user.role === "founder") return <Navigate to="/founder" replace />;
     if (user.role === "investor") return <Navigate to="/investor" replace />;
     if (user.role === "admin") return <Navigate to="/admin" replace />;
+    if (user.role === "citizen") return <Navigate to="/citizen" replace />;
     return <Navigate to="/" replace />;
   }
-
   return children;
 }
 
@@ -119,6 +121,14 @@ function AppLayout() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/citizen"
+  element={
+    <ProtectedRoute roles={["citizen"]}>
+      <CitizenDashboard />
+    </ProtectedRoute>
+  }
+/>
           <Route
            path="/founder/create"
           element={

@@ -28,9 +28,10 @@ export default function Login() {
 
       // Redirect based on real role from backend
       if (user.role === "founder") navigate("/founder");
-      else if (user.role === "investor") navigate("/investor");
-      else if (user.role === "admin") navigate("/admin");
-      else navigate("/");
+else if (user.role === "investor") navigate("/investor");
+else if (user.role === "admin") navigate("/admin");
+else if (user.role === "citizen") navigate("/citizen");
+else navigate("/");
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
