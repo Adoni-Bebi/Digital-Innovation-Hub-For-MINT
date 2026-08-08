@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import CreateStartup from "./pages/founder/CreateStartup";
 import DataRoom from "./pages/founder/DataRoom";
 import Profile from "./pages/Profile";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 // ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
@@ -145,6 +146,14 @@ function AppLayout() {
           </ProtectedRoute>
         }
       />
+          <Route
+      path="/admin/users"
+      element={
+        <ProtectedRoute roles={["admin"]}>
+          <AdminUsers />
+        </ProtectedRoute>
+      }
+    />
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

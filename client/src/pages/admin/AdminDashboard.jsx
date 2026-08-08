@@ -120,11 +120,19 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">MinT Admin Panel</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Ecosystem oversight · {user?.fullName}
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">MinT Admin Panel</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Ecosystem oversight · {user?.fullName}
+          </p>
+        </div>
+        <Link
+          to="/admin/users"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          <Users size={16} /> Manage Users
+        </Link>
       </div>
 
       {/* Stats */}
@@ -237,7 +245,6 @@ export default function AdminDashboard() {
             {startups.map((item) => (
               <div key={item._id} className="px-4 sm:px-6 py-5">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-lg leading-none">{item.logo || "🚀"}</span>
@@ -272,7 +279,6 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {item.status === "verified" && (
                       <Link
