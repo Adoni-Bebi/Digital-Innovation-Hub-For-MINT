@@ -9,7 +9,6 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on refresh
   useEffect(() => {
     const savedUser = localStorage.getItem("dih_user");
     const savedToken = localStorage.getItem("dih_token");
@@ -26,7 +25,6 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // ====================== LOGIN ======================
   const login = async (email, password) => {
     const res = await fetch(`${API_URL}/login`, {
       method: "POST",
@@ -48,7 +46,6 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  // ====================== REGISTER ======================
   const register = async (fullName, email, password, role) => {
     const res = await fetch(`${API_URL}/register`, {
       method: "POST",
@@ -70,7 +67,28 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  // ====================== LOGOUT ======================
+  const updateProfile = async (profileData) => {
+    const res = await fetch(`${API_URL}/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token || localStorage.getItem("dih_token")}`,
+      },
+      body: JSON.stringify(profileData),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to update profile");
+    }
+
+    setUser(data.user);
+    localStorage.setItem("dih_user", JSON.stringify(data.user));
+
+    return data.user;
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -86,6 +104,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         register,
+        updateProfile,
         logout,
         isAuthenticated: !!user,
       }}
