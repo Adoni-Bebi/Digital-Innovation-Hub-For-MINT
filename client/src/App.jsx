@@ -15,6 +15,8 @@ import DataRoom from "./pages/founder/DataRoom";
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import Profile from "./pages/Profile";
 import AdminUsers from "./pages/admin/AdminUsers";
+import Opportunities from "./pages/Opportunities";
+import AdminOpportunities from "./pages/admin/AdminOpportunities";
 
 // ====================== PROTECTED ROUTE ======================
 function ProtectedRoute({ children, roles }) {
@@ -153,6 +155,22 @@ function AppLayout() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+            <Route
+        path="/opportunities"
+        element={
+          <ProtectedRoute>
+            <Opportunities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/opportunities"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <AdminOpportunities />
           </ProtectedRoute>
         }
       />

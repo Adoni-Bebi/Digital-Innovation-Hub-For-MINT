@@ -5,6 +5,7 @@ const startupRoutes = require('./routes/startupRoutes');
 const accessRequestRoutes = require('./routes/accessRequestRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const userRoutes = require('./routes/userRoutes');
+const opportunityRoutes = require('./routes/opportunityRoutes');
 
 const app = express();
 
@@ -16,12 +17,12 @@ app.use('/api/startups', startupRoutes);
 app.use('/api/access-requests', accessRequestRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/opportunities', opportunityRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Digital Innovation Hub API is running' });
 });
 
-// Multer / general error handler
 app.use((err, req, res, next) => {
   if (err instanceof require('multer').MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {

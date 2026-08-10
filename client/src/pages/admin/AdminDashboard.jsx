@@ -127,12 +127,20 @@ export default function AdminDashboard() {
             Ecosystem oversight · {user?.fullName}
           </p>
         </div>
-        <Link
-          to="/admin/users"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          <Users size={16} /> Manage Users
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/opportunities"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Opportunities
+          </Link>
+          <Link
+            to="/admin/users"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <Users size={16} /> Manage Users
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

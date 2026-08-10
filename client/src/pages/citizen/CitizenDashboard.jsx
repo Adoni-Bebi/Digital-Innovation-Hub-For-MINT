@@ -7,6 +7,7 @@ import {
   Trophy,
   ArrowRight,
   Sparkles,
+  Megaphone,
 } from "lucide-react";
 
 export default function CitizenDashboard() {
@@ -21,10 +22,18 @@ export default function CitizenDashboard() {
       color: "bg-primary-50 text-primary-600",
     },
     {
+      title: "Opportunities",
+      description:
+        "Scholarships, internships, trainings, and official MinT announcements.",
+      icon: Megaphone,
+      to: "/opportunities",
+      color: "bg-green-50 text-green-600",
+    },
+    {
       title: "Learning Resources",
       description: "Access guides, toolkits, and Digital Ethiopia 2030 materials.",
       icon: BookOpen,
-      to: "/learning",          // will be created later
+      to: "/learning",
       color: "bg-blue-50 text-blue-600",
       comingSoon: true,
     },
@@ -32,7 +41,7 @@ export default function CitizenDashboard() {
       title: "Mentor Matching",
       description: "Connect with industry mentors and experts.",
       icon: Users,
-      to: "/mentors",           // will be created later
+      to: "/mentors",
       color: "bg-amber-50 text-amber-600",
       comingSoon: true,
     },
@@ -40,7 +49,7 @@ export default function CitizenDashboard() {
       title: "Innovation Competitions",
       description: "Participate in national innovation challenges.",
       icon: Trophy,
-      to: "/competitions",      // will be created later
+      to: "/competitions",
       color: "bg-purple-50 text-purple-600",
       comingSoon: true,
     },
@@ -48,7 +57,6 @@ export default function CitizenDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-      {/* Header */}
       <div className="mb-10">
         <div className="flex items-center gap-2 text-primary-600 text-sm font-medium mb-2">
           <Sparkles size={16} />
@@ -58,12 +66,11 @@ export default function CitizenDashboard() {
           Welcome, {user?.fullName?.split(" ")[0] || "Citizen"}
         </h1>
         <p className="text-slate-600 mt-2 max-w-2xl">
-          Explore Ethiopia’s innovation ecosystem, learn from resources, and stay
-          connected with startups, mentors, and opportunities.
+          Explore verified startups and view exclusive opportunities such as
+          scholarships, internships, and MinT programs.
         </p>
       </div>
 
-      {/* Feature cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-5">
         {features.map((item) => (
           <Link
@@ -102,14 +109,6 @@ export default function CitizenDashboard() {
             )}
           </Link>
         ))}
-      </div>
-
-      {/* Quick note */}
-      <div className="mt-10 p-5 rounded-2xl bg-slate-50 border border-slate-200">
-        <p className="text-sm text-slate-600">
-          More features (Learning Resources, Mentors, Competitions, Certificates, and AI Assistant)
-          will be added soon. This is the starting point for the Citizen experience.
-        </p>
       </div>
     </div>
   );
