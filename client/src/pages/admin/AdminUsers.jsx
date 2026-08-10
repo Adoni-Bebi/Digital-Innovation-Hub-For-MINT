@@ -12,6 +12,7 @@ import {
   Building2,
   Briefcase,
   Shield,
+  Trash2,
 } from "lucide-react";
 
 const ROLE_TABS = [
@@ -34,6 +35,9 @@ export default function AdminUsers() {
   const [listLoading, setListLoading] = useState(false);
   const [role, setRole] = useState("all");
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   const fetchUsers = async (selectedRole = role, q = search) => {
     setListLoading(true);
@@ -77,6 +81,35 @@ export default function AdminUsers() {
     fetchUsers(role, search);
   };
 
+  const handleDelete = async (target) => {
+    const isSelf = target.id === user?.id || target.id === user?._id;
+    if (isSelf) {
+      setError("You cannot delete your own account");
+      return;
+    }
+
+    const ok = window.confirm(
+      `Delete "${target.fullName}" (${target.role})?\n\nThis will permanently remove the user and related data (startup, documents, access requests). This cannot be undone.`
+    );
+    if (!ok) return;
+
+    setDeletingId(target.id);
+    setError("");
+    setMessage("");
+
+    try {
+      const res = await apiRequest(`/users/${target.id}`, {
+        method: "DELETE",
+      });
+      setMessage(res.message || "User deleted successfully");
+      await fetchUsers(role, search);
+    } catch (err) {
+      setError(err.message || "Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const roleBadge = (r) => {
     const styles = {
       founder: "bg-blue-50 text-blue-700 border-blue-200",
@@ -118,6 +151,18 @@ export default function AdminUsers() {
           </p>
         </div>
       </div>
+
+      {(message || error) && (
+        <div
+          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
+            error
+              ? "bg-red-50 text-red-700 border border-red-100"
+              : "bg-green-50 text-green-700 border border-green-100"
+          }`}
+        >
+          {error || message}
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Users" value={roleCounts.total} icon={Users} color="blue" />
@@ -192,55 +237,85 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {users.map((u) => (
-              <div key={u.id} className="px-4 sm:px-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center font-semibold text-sm shrink-0">
-                    {(u.fullName || "?").charAt(0).toUpperCase()}
-                  </div>
+            {users.map((u) => {
+              const isSelf = u.id === user?.id || u.id === user?._id;
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <span className="font-semibold text-slate-900 text-sm">
-                        {u.fullName}
-                      </span>
-                      {roleBadge(u.role)}
+              return (
+                <div key={u.id} className="px-4 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center font-semibold text-sm shrink-0">
+                      {(u.fullName || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div className="text-xs text-slate-500 space-x-3">
-                      <span>{u.email}</span>
-                      {u.role === "investor" && u.organization && (
-                        <span>· {u.organization}</span>
-                      )}
-                      {u.role === "founder" && u.companyName && (
-                        <span>· {u.companyName}</span>
-                      )}
-                      {u.role === "investor" && u.investmentRange && (
-                        <span>· {u.investmentRange}</span>
-                      )}
-                    </div>
-                    {u.role === "investor" && u.focus?.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {u.focus.map((f) => (
-                          <span
-                            key={f}
-                            className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-600"
-                          >
-                            {f}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                        <span className="font-semibold text-slate-900 text-sm">
+                          {u.fullName}
+                        </span>
+                        {roleBadge(u.role)}
+                        {isSelf && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                            You
                           </span>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-xs text-slate-500 space-x-3">
+                        <span>{u.email}</span>
+                        {u.role === "investor" && u.organization && (
+                          <span>· {u.organization}</span>
+                        )}
+                        {u.role === "founder" && u.companyName && (
+                          <span>· {u.companyName}</span>
+                        )}
+                        {u.role === "investor" && u.investmentRange && (
+                          <span>· {u.investmentRange}</span>
+                        )}
+                      </div>
+                      {u.role === "investor" && u.focus?.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {u.focus.map((f) => (
+                            <span
+                              key={f}
+                              className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-600"
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="text-xs text-slate-400 shrink-0 sm:text-right">
-                    Joined{" "}
-                    {u.createdAt
-                      ? new Date(u.createdAt).toLocaleDateString()
-                      : "—"}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-xs text-slate-400 sm:text-right">
+                        Joined{" "}
+                        {u.createdAt
+                          ? new Date(u.createdAt).toLocaleDateString()
+                          : "—"}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(u)}
+                        disabled={isSelf || deletingId === u.id}
+                        title={
+                          isSelf
+                            ? "You cannot delete your own account"
+                            : "Delete user"
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {deletingId === u.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
