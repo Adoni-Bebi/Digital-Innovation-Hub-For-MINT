@@ -45,7 +45,8 @@ export default function Register() {
       );
 
       if (user.role === "founder") navigate("/founder");
-      else navigate("/investor");
+else if (user.role === "investor") navigate("/investor");
+else navigate("/citizen");          // for citizen
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {
@@ -93,11 +94,12 @@ export default function Register() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 I am a…
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {[
-                  { value: "founder", label: "Startup Founder", desc: "Get verified & discovered" },
-                  { value: "investor", label: "Investor", desc: "Discover vetted startups" },
-                ].map((r) => (
+  { value: "founder", label: "Startup Founder", desc: "Get verified & discovered" },
+  { value: "investor", label: "Investor", desc: "Discover vetted startups" },
+  { value: "citizen", label: "Citizen", desc: "Explore & learn" },
+].map((r) => (
                   <button
                     key={r.value}
                     type="button"

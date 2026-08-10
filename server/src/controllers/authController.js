@@ -37,8 +37,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    const allowedRoles = ['founder', 'investor'];
-    const userRole = allowedRoles.includes(role) ? role : 'founder';
+    const allowedRoles = ['founder', 'investor', 'citizen'];
+const userRole = allowedRoles.includes(role) ? role : 'founder';
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
