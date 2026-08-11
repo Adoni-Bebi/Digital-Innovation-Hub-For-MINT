@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   Inbox,
+  Briefcase,
 } from "lucide-react";
 import { SECTORS } from "../../data/mockData";
 
@@ -196,7 +197,7 @@ export default function InvestorDashboard() {
           </div>
         </div>
 
-        {/* Profile */}
+        {/* Profile + actions */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -320,6 +321,20 @@ export default function InvestorDashboard() {
             className="flex items-center justify-center gap-2 w-full py-3 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             <Search size={16} /> Explore Directory
+          </Link>
+
+          <Link
+            to="/investor/opportunities"
+            className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-slate-200 hover:border-primary-300 text-slate-800 text-sm font-semibold rounded-xl transition-colors"
+          >
+            <Briefcase size={16} /> Post Job / Internship
+          </Link>
+
+          <Link
+            to="/opportunities"
+            className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-slate-200 hover:border-primary-300 text-slate-800 text-sm font-semibold rounded-xl transition-colors"
+          >
+            View All Opportunities
           </Link>
         </div>
       </div>

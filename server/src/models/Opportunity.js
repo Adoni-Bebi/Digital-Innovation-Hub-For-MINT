@@ -17,6 +17,7 @@ const opportunitySchema = new mongoose.Schema(
       enum: [
         'scholarship',
         'internship',
+        'job',
         'training',
         'competition',
         'announcement',
@@ -35,9 +36,21 @@ const opportunitySchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // pending = waiting admin approval (investor posts)
+    // approved = visible to all logged-in users
+    // rejected = hidden
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
     isActive: {
       type: Boolean,
       default: true,
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

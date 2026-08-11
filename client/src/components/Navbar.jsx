@@ -18,13 +18,13 @@ export default function Navbar() {
   };
 
   const dashboardLink = () => {
-  if (!user) return null;
-  if (user.role === "founder") return "/founder";
-  if (user.role === "investor") return "/investor";
-  if (user.role === "admin") return "/admin";
-  if (user.role === "citizen") return "/citizen";
-  return "/";
-};
+    if (!user) return null;
+    if (user.role === "founder") return "/founder";
+    if (user.role === "investor") return "/investor";
+    if (user.role === "admin") return "/admin";
+    if (user.role === "citizen") return "/citizen";
+    return "/";
+  };
 
   const navLink = (to, label) => {
     const active =
@@ -68,6 +68,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-1">
             {navLink("/", "Home")}
             {navLink("/directory", "Startup Directory")}
+            {isAuthenticated && navLink("/opportunities", "Opportunities")}
             {isAuthenticated && user?.role === "founder" && navLink("/founder", "My Dashboard")}
             {isAuthenticated && user?.role === "investor" && navLink("/investor", "Investor Hub")}
             {isAuthenticated && user?.role === "admin" && navLink("/admin", "Admin Panel")}
@@ -130,6 +131,7 @@ export default function Navbar() {
         <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-1">
           {navLink("/", "Home")}
           {navLink("/directory", "Startup Directory")}
+          {isAuthenticated && navLink("/opportunities", "Opportunities")}
 
           {isAuthenticated && (
             <>
