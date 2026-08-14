@@ -11,6 +11,7 @@ const {
   getAdminStats,
   getPublicStats,
   getAdminStartups,
+  deleteStartup,
 } = require('../controllers/startupController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -33,6 +34,7 @@ router.get('/admin', restrictTo('admin'), getAdminStartups);
 
 router.patch('/:id/approve', restrictTo('admin'), approveStartup);
 router.patch('/:id/reject', restrictTo('admin'), rejectStartup);
+router.delete('/:id', restrictTo('admin'), deleteStartup);
 
 router.get('/:id', getStartup);
 

@@ -3,7 +3,6 @@ const Startup = require('../models/Startup');
 // ====================== CREATE STARTUP (Founder) ======================
 exports.createStartup = async (req, res) => {
   try {
-    // Check if founder already has a startup
     const existing = await Startup.findOne({ founder: req.user._id });
     if (existing) {
       return res.status(400).json({
@@ -56,12 +55,8 @@ exports.updateMyStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
-    // If already verified, changing important fields may require re-verification (optional logic)
     const updates = req.body;
     Object.assign(startup, updates);
-
-    // Optional: if they edit after verification, set back to pending
-    // startup.status = 'pending';
 
     await startup.save();
 
@@ -101,7 +96,6 @@ exports.getStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
-    // Only show verified startups to public, or owner/admin
     if (
       startup.status !== 'verified' &&
       (!req.user ||
@@ -150,35 +144,6 @@ exports.approveStartup = async (req, res) => {
     startup.rejectionReason = undefined;
     await startup.save();
 
-    // ===== EMAIL FOUNDER =====
-    const sendEmail = require('../utils/sendEmail');
-    if (startup.founder?.email) {
-      await sendEmail({
-        to: startup.founder.email,
-        subject: `MinT Verified – ${startup.companyName}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #0d9488;">Your Startup is MinT Verified</h2>
-            <p>Hello ${startup.founder.fullName},</p>
-            <p>
-              Congratulations! <strong>${startup.companyName}</strong> has been reviewed and
-              <strong>verified</strong> by the Ministry of Innovation and Technology.
-            </p>
-            <p>Your startup is now visible in the public directory and open to investor interest.</p>
-            <p>
-              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory/${startup._id}"
-                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
-                View Public Profile
-              </a>
-            </p>
-            <p style="color: #666; font-size: 13px; margin-top: 30px;">
-              Digital Innovation Hub · Ministry of Innovation and Technology
-            </p>
-          </div>
-        `,
-      });
-    }
-
     res.status(200).json({
       success: true,
       message: 'Startup approved and verified',
@@ -205,36 +170,6 @@ exports.rejectStartup = async (req, res) => {
     startup.rejectionReason = req.body.reason || 'Did not meet verification criteria';
     await startup.save();
 
-    // ===== EMAIL FOUNDER =====
-    const sendEmail = require('../utils/sendEmail');
-    if (startup.founder?.email) {
-      await sendEmail({
-        to: startup.founder.email,
-        subject: `Verification Update – ${startup.companyName}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #64748b;">Startup Verification Update</h2>
-            <p>Hello ${startup.founder.fullName},</p>
-            <p>
-              After review, <strong>${startup.companyName}</strong> was not approved for
-              MinT verification at this time.
-            </p>
-            <p><strong>Reason:</strong> ${startup.rejectionReason}</p>
-            <p>You can update your profile and resubmit for review.</p>
-            <p>
-              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/founder"
-                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
-                Go to Dashboard
-              </a>
-            </p>
-            <p style="color: #666; font-size: 13px; margin-top: 30px;">
-              Digital Innovation Hub · Ministry of Innovation and Technology
-            </p>
-          </div>
-        `,
-      });
-    }
-
     res.status(200).json({
       success: true,
       message: 'Startup rejected',
@@ -244,6 +179,27 @@ exports.rejectStartup = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// ====================== ADMIN: DELETE STARTUP ======================
+exports.deleteStartup = async (req, res) => {
+  try {
+    const startup = await Startup.findById(req.params.id);
+    if (!startup) {
+      return res.status(404).json({ success: false, message: 'Startup not found' });
+    }
+
+    await startup.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Startup deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete startup error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // ====================== ADMIN: DASHBOARD STATS ======================
 exports.getAdminStats = async (req, res) => {
   try {
@@ -254,7 +210,6 @@ exports.getAdminStats = async (req, res) => {
       Startup.countDocuments({ status: 'rejected' }),
     ]);
 
-    // Count investors (users with role investor)
     const User = require('../models/User');
     const investors = await User.countDocuments({ role: 'investor' });
 
@@ -273,6 +228,7 @@ exports.getAdminStats = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 // ====================== ADMIN: LIST STARTUPS BY STATUS ======================
 exports.getAdminStartups = async (req, res) => {
   try {
@@ -308,6 +264,7 @@ exports.getAdminStartups = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 // ====================== PUBLIC: HOME PAGE STATS ======================
 exports.getPublicStats = async (req, res) => {
   try {
@@ -325,7 +282,7 @@ exports.getPublicStats = async (req, res) => {
         verifiedStartups: verified,
         totalInvestors,
         totalStartups,
-        sectorsCovered: 7, // fixed for now
+        sectorsCovered: 7,
       },
     });
   } catch (error) {
