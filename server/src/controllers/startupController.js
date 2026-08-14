@@ -1,4 +1,5 @@
 const Startup = require('../models/Startup');
+const sendEmail = require('../utils/sendEmail');
 
 // ====================== CREATE STARTUP (Founder) ======================
 exports.createStartup = async (req, res) => {
@@ -55,9 +56,7 @@ exports.updateMyStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
-    const updates = req.body;
-    Object.assign(startup, updates);
-
+    Object.assign(startup, req.body);
     await startup.save();
 
     res.status(200).json({
@@ -99,7 +98,8 @@ exports.getStartup = async (req, res) => {
     if (
       startup.status !== 'verified' &&
       (!req.user ||
-        (req.user.role !== 'admin' && startup.founder.toString() !== req.user._id.toString()))
+        (req.user.role !== 'admin' &&
+          startup.founder.toString() !== req.user._id.toString()))
     ) {
       return res.status(403).json({ success: false, message: 'This startup is not public yet' });
     }
@@ -139,10 +139,45 @@ exports.approveStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
+    // Capture BEFORE save (save can depopulate)
+    const founderEmail = startup.founder?.email;
+    const founderName = startup.founder?.fullName || 'Founder';
+    const companyName = startup.companyName;
+    const startupId = startup._id;
+
     startup.status = 'verified';
     startup.verifiedAt = new Date();
     startup.rejectionReason = undefined;
     await startup.save();
+
+    if (founderEmail) {
+      await sendEmail({
+        to: founderEmail,
+        subject: `MinT Verified – ${companyName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0d9488;">Your Startup is MinT Verified</h2>
+            <p>Hello ${founderName},</p>
+            <p>
+              Congratulations! <strong>${companyName}</strong> has been reviewed and
+              <strong>verified</strong> by the Ministry of Innovation and Technology.
+            </p>
+            <p>Your startup is now visible in the public directory and open to investor interest.</p>
+            <p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory/${startupId}"
+                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                View Public Profile
+              </a>
+            </p>
+            <p style="color: #666; font-size: 13px; margin-top: 30px;">
+              Digital Innovation Hub · Ministry of Innovation and Technology
+            </p>
+          </div>
+        `,
+      });
+    } else {
+      console.log('Approve email skipped: founder email missing');
+    }
 
     res.status(200).json({
       success: true,
@@ -150,6 +185,7 @@ exports.approveStartup = async (req, res) => {
       data: startup,
     });
   } catch (error) {
+    console.error('Approve startup error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -166,9 +202,44 @@ exports.rejectStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
+    const founderEmail = startup.founder?.email;
+    const founderName = startup.founder?.fullName || 'Founder';
+    const companyName = startup.companyName;
+    const reason = req.body.reason || 'Did not meet verification criteria';
+
     startup.status = 'rejected';
-    startup.rejectionReason = req.body.reason || 'Did not meet verification criteria';
+    startup.rejectionReason = reason;
     await startup.save();
+
+    if (founderEmail) {
+      await sendEmail({
+        to: founderEmail,
+        subject: `Verification Update – ${companyName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #64748b;">Startup Verification Update</h2>
+            <p>Hello ${founderName},</p>
+            <p>
+              After review, <strong>${companyName}</strong> was not approved for
+              MinT verification at this time.
+            </p>
+            <p><strong>Reason:</strong> ${reason}</p>
+            <p>You can update your profile and resubmit for review.</p>
+            <p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/founder"
+                 style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                Go to Dashboard
+              </a>
+            </p>
+            <p style="color: #666; font-size: 13px; margin-top: 30px;">
+              Digital Innovation Hub · Ministry of Innovation and Technology
+            </p>
+          </div>
+        `,
+      });
+    } else {
+      console.log('Reject email skipped: founder email missing');
+    }
 
     res.status(200).json({
       success: true,
@@ -176,6 +247,7 @@ exports.rejectStartup = async (req, res) => {
       data: startup,
     });
   } catch (error) {
+    console.error('Reject startup error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -235,14 +307,8 @@ exports.getAdminStartups = async (req, res) => {
     const { status, search, sector } = req.query;
     const filter = {};
 
-    if (status && status !== 'all') {
-      filter.status = status;
-    }
-
-    if (sector) {
-      filter.sector = sector;
-    }
-
+    if (status && status !== 'all') filter.status = status;
+    if (sector) filter.sector = sector;
     if (search) {
       filter.$or = [
         { companyName: { $regex: search, $options: 'i' } },

@@ -1,6 +1,5 @@
 const AccessRequest = require('../models/AccessRequest');
 const Startup = require('../models/Startup');
-const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 
 // ====================== INVESTOR: CREATE REQUEST ======================
@@ -49,10 +48,11 @@ exports.createRequest = async (req, res) => {
       .populate('startup', 'companyName logo sector fundingStage')
       .populate('investor', 'fullName email organization investmentRange focus');
 
-    // ===== EMAIL FOUNDER =====
-    if (startup.founder?.email) {
+    // Email founder (uses separate populated startup — works)
+    const founderEmail = startup.founder?.email;
+    if (founderEmail) {
       await sendEmail({
-        to: startup.founder.email,
+        to: founderEmail,
         subject: `New Data Room Request – ${startup.companyName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -161,28 +161,34 @@ exports.approveRequest = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Request not found' });
     }
 
-    if (request.startup.founder.toString() !== req.user._id.toString()) {
+    const founderId = request.startup.founder?._id || request.startup.founder;
+    if (founderId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    // Capture BEFORE save
+    const investorEmail = request.investor?.email;
+    const investorName = request.investor?.fullName || 'Investor';
+    const companyName = request.startup.companyName;
+    const startupId = request.startup._id;
 
     request.status = 'approved';
     await request.save();
 
-    // ===== EMAIL INVESTOR =====
-    if (request.investor?.email) {
+    if (investorEmail) {
       await sendEmail({
-        to: request.investor.email,
-        subject: `Access Approved – ${request.startup.companyName}`,
+        to: investorEmail,
+        subject: `Access Approved – ${companyName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #0d9488;">Access Request Approved</h2>
-            <p>Hello ${request.investor.fullName},</p>
+            <p>Hello ${investorName},</p>
             <p>
               Great news! Your Data Room access request for
-              <strong>${request.startup.companyName}</strong> has been <strong>approved</strong>.
+              <strong>${companyName}</strong> has been <strong>approved</strong>.
             </p>
             <p>
-              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory/${request.startup._id}"
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory/${startupId}"
                  style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
                 View Startup
               </a>
@@ -193,6 +199,8 @@ exports.approveRequest = async (req, res) => {
           </div>
         `,
       });
+    } else {
+      console.log('Access approve email skipped: investor email missing');
     }
 
     res.status(200).json({
@@ -201,6 +209,7 @@ exports.approveRequest = async (req, res) => {
       data: request,
     });
   } catch (error) {
+    console.error('Approve request error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -216,29 +225,31 @@ exports.denyRequest = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Request not found' });
     }
 
-    if (request.startup.founder.toString() !== req.user._id.toString()) {
+    const founderId = request.startup.founder?._id || request.startup.founder;
+    if (founderId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    const investorEmail = request.investor?.email;
+    const investorName = request.investor?.fullName || 'Investor';
+    const companyName = request.startup.companyName;
 
     request.status = 'denied';
     await request.save();
 
-    // ===== EMAIL INVESTOR =====
-    if (request.investor?.email) {
+    if (investorEmail) {
       await sendEmail({
-        to: request.investor.email,
-        subject: `Access Update – ${request.startup.companyName}`,
+        to: investorEmail,
+        subject: `Access Update – ${companyName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #64748b;">Access Request Update</h2>
-            <p>Hello ${request.investor.fullName},</p>
+            <p>Hello ${investorName},</p>
             <p>
               Your Data Room access request for
-              <strong>${request.startup.companyName}</strong> was not approved at this time.
+              <strong>${companyName}</strong> was not approved at this time.
             </p>
-            <p>
-              You can continue exploring other verified startups on the platform.
-            </p>
+            <p>You can continue exploring other verified startups on the platform.</p>
             <p>
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/directory"
                  style="background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
@@ -251,6 +262,8 @@ exports.denyRequest = async (req, res) => {
           </div>
         `,
       });
+    } else {
+      console.log('Access deny email skipped: investor email missing');
     }
 
     res.status(200).json({
@@ -259,6 +272,7 @@ exports.denyRequest = async (req, res) => {
       data: request,
     });
   } catch (error) {
+    console.error('Deny request error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
