@@ -7,14 +7,14 @@ const sendEmail = async ({ to, subject, html }) => {
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
 
-    if (!host || !user || !pass) {
-      console.log(
-        'Email skipped: missing SMTP_HOST / SMTP_USER / SMTP_PASS on Render'
-      );
-      return { ok: false };
-    }
+    console.log(
+      `Email check → host=${host || 'MISSING'} user=${user ? 'SET' : 'MISSING'} pass=${pass ? 'SET' : 'MISSING'} to=${to}`
+    );
 
-    console.log(`Email trying → to=${to} subject="${subject}"`);
+    if (!host || !user || !pass) {
+      console.log('Email skipped: missing SMTP_HOST / SMTP_USER / SMTP_PASS');
+      return { ok: false, reason: 'missing_env' };
+    }
 
     const transporter = nodemailer.createTransport({
       host,
@@ -32,7 +32,7 @@ const sendEmail = async ({ to, subject, html }) => {
       html,
     });
 
-    console.log(`Email OK → to=${to} id=${info.messageId}`);
+    console.log(`Email OK → to=${to} subject="${subject}" id=${info.messageId}`);
     return { ok: true, id: info.messageId };
   } catch (error) {
     console.error('Email FAILED →', error.message);

@@ -6,6 +6,7 @@ const accessRequestRoutes = require('./routes/accessRequestRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const opportunityRoutes = require('./routes/opportunityRoutes');
+const sendEmail = require('./utils/sendEmail');
 
 const app = express();
 
@@ -21,6 +22,31 @@ app.use('/api/opportunities', opportunityRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Digital Innovation Hub API is running' });
+});
+
+// TEMP test route — remove later
+app.get('/api/test-email', async (req, res) => {
+  const to = req.query.to || process.env.EMAIL_USER || 'mint.dih.ethiopia@gmail.com';
+
+  console.log('TEST EMAIL route hit, sending to:', to);
+
+  const result = await sendEmail({
+    to,
+    subject: 'DIH Test Email',
+    html: '<p>This is a test email from Digital Innovation Hub on Render + Brevo.</p>',
+  });
+
+  res.json({
+    success: !!result.ok,
+    to,
+    result,
+    smtp: {
+      host: process.env.SMTP_HOST || null,
+      userSet: !!process.env.SMTP_USER,
+      passSet: !!process.env.SMTP_PASS,
+      from: process.env.EMAIL_FROM || null,
+    },
+  });
 });
 
 app.use((err, req, res, next) => {
