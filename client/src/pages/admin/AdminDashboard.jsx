@@ -12,6 +12,7 @@ import {
   Loader2,
   Search,
   Inbox,
+  Trash2,
 } from "lucide-react";
 
 const TABS = [
@@ -60,6 +61,10 @@ export default function AdminDashboard() {
     }
   };
 
+  const refreshAll = async () => {
+    await Promise.all([fetchStats(), fetchStartups(tab, search, sector)]);
+  };
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
@@ -84,10 +89,19 @@ export default function AdminDashboard() {
   const handleApprove = async (id) => {
     setActionLoading(id);
     try {
+      // Optimistic UI update
+      setStartups((prev) =>
+        prev.map((s) =>
+          s._id === id
+            ? { ...s, status: "verified", verifiedAt: new Date().toISOString() }
+            : s
+        )
+      );
       await apiRequest(`/startups/${id}/approve`, { method: "PATCH" });
-      await Promise.all([fetchStats(), fetchStartups(tab, search, sector)]);
+      await refreshAll();
     } catch (err) {
       alert(err.message);
+      await refreshAll();
     } finally {
       setActionLoading(null);
     }
@@ -97,13 +111,42 @@ export default function AdminDashboard() {
     const reason = prompt("Rejection reason (optional):");
     setActionLoading(id);
     try {
+      setStartups((prev) =>
+        prev.map((s) =>
+          s._id === id
+            ? {
+                ...s,
+                status: "rejected",
+                rejectionReason: reason || "Did not meet verification criteria",
+              }
+            : s
+        )
+      );
       await apiRequest(`/startups/${id}/reject`, {
         method: "PATCH",
         body: { reason: reason || "Did not meet verification criteria" },
       });
-      await Promise.all([fetchStats(), fetchStartups(tab, search, sector)]);
+      await refreshAll();
     } catch (err) {
       alert(err.message);
+      await refreshAll();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    const ok = window.confirm(`Delete startup "${name}" permanently?`);
+    if (!ok) return;
+
+    setActionLoading(id);
+    try {
+      setStartups((prev) => prev.filter((s) => s._id !== id));
+      await apiRequest(`/startups/${id}`, { method: "DELETE" });
+      await refreshAll();
+    } catch (err) {
+      alert(err.message);
+      await refreshAll();
     } finally {
       setActionLoading(null);
     }
@@ -119,7 +162,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">MinT Admin Panel</h1>
@@ -143,37 +185,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Pending Review"
-          value={stats?.pending ?? 0}
-          icon={Inbox}
-          color="amber"
-        />
-        <StatCard
-          label="Verified"
-          value={stats?.verified ?? 0}
-          icon={CheckCircle}
-          color="primary"
-        />
-        <StatCard
-          label="Investors"
-          value={stats?.totalInvestors ?? 0}
-          icon={Users}
-          color="purple"
-        />
-        <StatCard
-          label="Total Startups"
-          value={stats?.totalStartups ?? 0}
-          icon={Building2}
-          color="blue"
-        />
+        <StatCard label="Pending Review" value={stats?.pending ?? 0} icon={Inbox} color="amber" />
+        <StatCard label="Verified" value={stats?.verified ?? 0} icon={CheckCircle} color="primary" />
+        <StatCard label="Investors" value={stats?.totalInvestors ?? 0} icon={Users} color="purple" />
+        <StatCard label="Total Startups" value={stats?.totalStartups ?? 0} icon={Building2} color="blue" />
       </div>
 
-      {/* Main panel */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-        {/* Tabs */}
         <div className="px-4 sm:px-6 pt-4 border-b border-slate-100 flex flex-wrap gap-1">
           {TABS.map((t) => (
             <button
@@ -195,16 +214,12 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Search + filter */}
         <form
           onSubmit={handleSearch}
           className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3"
         >
           <div className="relative flex-1">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
@@ -233,7 +248,6 @@ export default function AdminDashboard() {
           </button>
         </form>
 
-        {/* List */}
         {listLoading ? (
           <div className="py-16 flex justify-center">
             <Loader2 className="w-7 h-7 animate-spin text-primary-600" />
@@ -244,9 +258,7 @@ export default function AdminDashboard() {
               <Inbox className="text-slate-400" size={22} />
             </div>
             <p className="text-slate-600 font-medium text-sm">No startups found</p>
-            <p className="text-slate-400 text-xs mt-1">
-              Try another tab or clear your filters
-            </p>
+            <p className="text-slate-400 text-xs mt-1">Try another tab or clear your filters</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -256,9 +268,7 @@ export default function AdminDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-lg leading-none">{item.logo || "🚀"}</span>
-                      <h3 className="font-semibold text-slate-900 text-sm">
-                        {item.companyName}
-                      </h3>
+                      <h3 className="font-semibold text-slate-900 text-sm">{item.companyName}</h3>
                       <StatusBadge status={item.status} />
                     </div>
 
@@ -275,9 +285,7 @@ export default function AdminDashboard() {
                         Founder: {item.founder?.fullName || "—"}
                         {item.founder?.email ? ` · ${item.founder.email}` : ""}
                       </span>
-                      <span>
-                        Submitted {new Date(item.createdAt).toLocaleDateString()}
-                      </span>
+                      <span>Submitted {new Date(item.createdAt).toLocaleDateString()}</span>
                     </div>
 
                     {item.status === "rejected" && item.rejectionReason && (
@@ -325,6 +333,14 @@ export default function AdminDashboard() {
                         <CheckCircle size={13} /> Approve anyway
                       </button>
                     )}
+
+                    <button
+                      onClick={() => handleDelete(item._id, item.companyName)}
+                      disabled={actionLoading === item._id}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-50"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
                   </div>
                 </div>
               </div>
