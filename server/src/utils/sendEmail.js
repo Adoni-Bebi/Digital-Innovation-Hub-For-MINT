@@ -1,39 +1,50 @@
-const nodemailer = require('nodemailer');
-
 const sendEmail = async ({ to, subject, html }) => {
   try {
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const apiKey = process.env.BREVO_API_KEY;
+    const fromEmail = process.env.EMAIL_USER || 'mint.dih.ethiopia@gmail.com';
+    const fromName = 'Digital Innovation Hub';
 
     console.log(
-      `Email check → host=${host || 'MISSING'} user=${user ? 'SET' : 'MISSING'} pass=${pass ? 'SET' : 'MISSING'} to=${to}`
+      `Email check → apiKey=${apiKey ? 'SET' : 'MISSING'} from=${fromEmail} to=${to}`
     );
 
-    if (!host || !user || !pass) {
-      console.log('Email skipped: missing SMTP_HOST / SMTP_USER / SMTP_PASS');
-      return { ok: false, reason: 'missing_env' };
+    if (!apiKey) {
+      console.log('Email skipped: BREVO_API_KEY not set on Render');
+      return { ok: false, reason: 'missing_api_key' };
     }
 
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: {
+          name: fromName,
+          email: fromEmail,
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
 
-    const info = await transporter.sendMail({
-      from:
-        process.env.EMAIL_FROM ||
-        `"Digital Innovation Hub" <${process.env.EMAIL_USER || user}>`,
-      to,
-      subject,
-      html,
-    });
+    const data = await response.json().catch(() => ({}));
 
-    console.log(`Email OK → to=${to} subject="${subject}" id=${info.messageId}`);
-    return { ok: true, id: info.messageId };
+    if (!response.ok) {
+      const msg =
+        data?.message ||
+        data?.error ||
+        JSON.stringify(data) ||
+        `HTTP ${response.status}`;
+      console.error('Email FAILED →', msg);
+      return { ok: false, reason: msg };
+    }
+
+    console.log(`Email OK → to=${to} subject="${subject}" id=${data?.messageId || 'ok'}`);
+    return { ok: true, id: data?.messageId };
   } catch (error) {
     console.error('Email FAILED →', error.message);
     return { ok: false, reason: error.message };
