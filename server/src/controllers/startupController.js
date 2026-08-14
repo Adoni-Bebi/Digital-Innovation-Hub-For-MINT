@@ -101,7 +101,10 @@ exports.getStartup = async (req, res) => {
         (req.user.role !== 'admin' &&
           startup.founder.toString() !== req.user._id.toString()))
     ) {
-      return res.status(403).json({ success: false, message: 'This startup is not public yet' });
+      return res.status(403).json({
+        success: false,
+        message: 'This startup is not public yet',
+      });
     }
 
     res.status(200).json({ success: true, data: startup });
@@ -139,7 +142,6 @@ exports.approveStartup = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
 
-    // Capture BEFORE save (save can depopulate)
     const founderEmail = startup.founder?.email;
     const founderName = startup.founder?.fullName || 'Founder';
     const companyName = startup.companyName;

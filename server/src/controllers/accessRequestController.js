@@ -11,10 +11,15 @@ exports.createRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Startup ID is required' });
     }
 
-    const startup = await Startup.findById(startupId).populate('founder', 'fullName email');
+    const startup = await Startup.findById(startupId).populate(
+      'founder',
+      'fullName email'
+    );
+
     if (!startup) {
       return res.status(404).json({ success: false, message: 'Startup not found' });
     }
+
     if (startup.status !== 'verified') {
       return res.status(400).json({
         success: false,
@@ -48,8 +53,9 @@ exports.createRequest = async (req, res) => {
       .populate('startup', 'companyName logo sector fundingStage')
       .populate('investor', 'fullName email organization investmentRange focus');
 
-    // Email founder (uses separate populated startup — works)
     const founderEmail = startup.founder?.email;
+    const founderName = startup.founder?.fullName || 'Founder';
+
     if (founderEmail) {
       await sendEmail({
         to: founderEmail,
@@ -57,7 +63,7 @@ exports.createRequest = async (req, res) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #0d9488;">New Access Request</h2>
-            <p>Hello ${startup.founder.fullName},</p>
+            <p>Hello ${founderName},</p>
             <p>You have a new Data Room access request for <strong>${startup.companyName}</strong>.</p>
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
               <tr>
@@ -89,6 +95,8 @@ exports.createRequest = async (req, res) => {
           </div>
         `,
       });
+    } else {
+      console.log('Request email skipped: founder email missing');
     }
 
     res.status(201).json({
@@ -166,7 +174,6 @@ exports.approveRequest = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // Capture BEFORE save
     const investorEmail = request.investor?.email;
     const investorName = request.investor?.fullName || 'Investor';
     const companyName = request.startup.companyName;

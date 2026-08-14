@@ -8,9 +8,13 @@ const sendEmail = async ({ to, subject, html }) => {
     const pass = process.env.SMTP_PASS;
 
     if (!host || !user || !pass) {
-      console.log('Email skipped: SMTP_HOST / SMTP_USER / SMTP_PASS not set');
-      return { ok: false, reason: 'missing_env' };
+      console.log(
+        'Email skipped: missing SMTP_HOST / SMTP_USER / SMTP_PASS on Render'
+      );
+      return { ok: false };
     }
+
+    console.log(`Email trying → to=${to} subject="${subject}"`);
 
     const transporter = nodemailer.createTransport({
       host,
@@ -28,7 +32,7 @@ const sendEmail = async ({ to, subject, html }) => {
       html,
     });
 
-    console.log(`Email OK → to=${to} subject="${subject}" id=${info.messageId}`);
+    console.log(`Email OK → to=${to} id=${info.messageId}`);
     return { ok: true, id: info.messageId };
   } catch (error) {
     console.error('Email FAILED →', error.message);
